@@ -96,6 +96,24 @@ def test_filter_listings_empty_program_selection_returns_no_rows() -> None:
     assert len(out) == 0
 
 
+def test_filter_listings_by_listing_type() -> None:
+    df = _sample_df().copy()
+    df["listing_type"] = ["sale", "rent"]
+    enriched = enrich_dataframe(df)
+    out = filter_listings(
+        df=enriched,
+        counties=["Nairobi", "Nakuru"],
+        property_types=["apartment", "house"],
+        min_price=0,
+        max_price=50_000_000,
+        min_bedrooms=1,
+        min_overall_score=0,
+        listing_types=["rent"],
+    )
+    assert len(out) == 1
+    assert out.iloc[0]["county"] == "Nakuru"
+
+
 def test_filter_listings_by_housing_program() -> None:
     df = _sample_df().copy()
     df["housing_program"] = ["Tsavo / affordable corridor", "Boma Yangu / AHP"]

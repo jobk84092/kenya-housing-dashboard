@@ -7,7 +7,11 @@ public bulk API or CSV. This script models realistic project names, counties,
 coordinates (jittered around known corridors), and price bands typical of
 social/affordable inventory for dashboard and portfolio use.
 
+Optional columns: listing_type (sale/rent; rent uses monthly KES in price_kes),
+sub_county demo labels, and **synthetic** contacts for UI testing only.
+
 Run: python scripts/generate_affordable_inventory.py --n 12000
+Run: python scripts/generate_affordable_inventory.py --n 500000 --sub-county-splits --rent-share 0.15
 """
 from __future__ import annotations
 
@@ -47,6 +51,23 @@ PROJECT_HUBS: list[tuple[str, str, str, float, float, float]] = [
 
 PROPERTY_TYPES = ["apartment", "apartment", "apartment", "maisonette"]
 
+# Constituency-style labels for demo sub-county charts (not an official DCC boundary export).
+SUBCOUNTY_POOL: dict[str, list[str]] = {
+    "Nairobi": ["Westlands", "Dagoretti North", "Kasarani", "Embakasi Central", "Starehe", "Kibra", "Langata"],
+    "Kiambu": ["Ruiru", "Thika Town", "Limuru", "Juja", "Githunguri"],
+    "Machakos": ["Mavoko", "Machakos Town", "Kangundo", "Matungulu"],
+    "Kajiado": ["Kajiado North", "Kitengela", "Isinya", "Kiserian"],
+    "Kisumu": ["Kisumu Central", "Kisumu East", "Seme"],
+    "Nakuru": ["Nakuru Town West", "Gilgil", "Naivasha", "Molo"],
+    "Uasin Gishu": ["Kapseret", "Ainabkoi", "Turbo", "Moiben"],
+    "Mombasa": ["Mvita", "Likoni", "Nyali", "Kisauni", "Changamwe"],
+}
+
+
+def _fake_phone(rng: np.random.Generator) -> str:
+    digits = "".join(str(int(x)) for x in rng.integers(0, 10, size=8))
+    return f"+2547{digits}"
+
 
 def _price_for(bedrooms: int, program: str, rng: np.random.Generator) -> int:
     """Rough affordable bands (KES); AHP-style lower than market core."""
@@ -59,7 +80,20 @@ def _price_for(bedrooms: int, program: str, rng: np.random.Generator) -> int:
     return int(rng.integers(lo, hi, endpoint=True))
 
 
-def generate(n: int, seed: int) -> pd.DataFrame:
+def _rent_monthly_kes(bedrooms: int, rng: np.random.Generator) -> int:
+    base = {1: (22_000, 48_000), 2: (35_000, 85_000), 3: (45_000, 120_000), 4: (55_000, 160_000)}
+    lo, hi = base.get(bedrooms, (30_000, 90_000))
+    return int(rng.integers(lo, hi, endpoint=True))
+
+
+def generate(
+    n: int,
+    seed: int,
+    *,
+    rent_share: float = 0.12,
+    sub_county_splits: bool = False,
+    synthetic_contacts: bool = False,
+) -> pd.DataFrame:
     rng = np.random.default_rng(seed)
     hubs = np.array(PROJECT_HUBS, dtype=object)
     idx = rng.integers(0, len(PROJECT_HUBS), size=n)
@@ -73,23 +107,33 @@ def generate(n: int, seed: int) -> pd.DataFrame:
         block = int(rng.integers(1, 28))
         unit = int(rng.integers(101, 2200))
         estate = f"{estate_base} — Block {block} Unit {unit}"
-        price = _price_for(bedrooms, program, rng)
+        is_rent = float(rng.random()) < max(0.0, min(1.0, rent_share))
+        listing_type = "rent" if is_rent else "sale"
+        price = _rent_monthly_kes(bedrooms, rng) if is_rent else _price_for(bedrooms, program, rng)
         # Plausible amenity counts without calling APIs (urban projects skew higher)
         urban = county == "Nairobi" or "Boma" in program
         s_lo, s_hi = (8, 45) if urban else (4, 28)
         h_lo, h_hi = (4, 22) if urban else (2, 12)
         t_lo, t_hi = (6, 30) if urban else (2, 14)
+        pool = SUBCOUNTY_POOL.get(county, [])
+        sub = str(rng.choice(pool)) if sub_county_splits and pool else ""
+        phone = _fake_phone(rng) if synthetic_contacts else ""
+        email = (f"demo.unit{unit}@example.invalid" if synthetic_contacts else "")
         rows.append(
             {
                 "listing_id": i + 1,
                 "housing_program": program,
                 "county": county,
+                "sub_county": sub,
                 "estate": estate,
                 "latitude": round(lat, 6),
                 "longitude": round(lon, 6),
                 "price_kes": price,
                 "bedrooms": bedrooms,
                 "property_type": prop,
+                "listing_type": listing_type,
+                "contact_phone": phone,
+                "contact_email": email,
                 "schools_2km": int(rng.integers(s_lo, s_hi + 1)),
                 "hospitals_3km": int(rng.integers(h_lo, h_hi + 1)),
                 "transit_stops_1km": int(rng.integers(t_lo, t_hi + 1)),
@@ -103,13 +147,35 @@ def main() -> None:
     parser.add_argument("--n", type=int, default=25_000, help="Number of listings to generate.")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility.")
     parser.add_argument(
+        "--rent-share",
+        type=float,
+        default=0.12,
+        help="Fraction of rows marked listing_type=rent (price_kes = monthly rent for those rows).",
+    )
+    parser.add_argument(
+        "--sub-county-splits",
+        action="store_true",
+        help="Attach demo sub_county labels for growth tab charts.",
+    )
+    parser.add_argument(
+        "--synthetic-contacts",
+        action="store_true",
+        help="Fill fake +254 phones and example.invalid emails for UI testing only.",
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         default=DEFAULT_OUTPUT,
         help="Output CSV path.",
     )
     args = parser.parse_args()
-    df = generate(n=args.n, seed=args.seed)
+    df = generate(
+        n=args.n,
+        seed=args.seed,
+        rent_share=args.rent_share,
+        sub_county_splits=args.sub_county_splits,
+        synthetic_contacts=args.synthetic_contacts,
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(args.output, index=False)
     print(f"Wrote {len(df)} rows to {args.output}")

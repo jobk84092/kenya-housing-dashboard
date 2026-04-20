@@ -1,0 +1,48 @@
+county,shock_exposure_score,flood_risk,drought_risk,summary,disclaimer
+Nairobi,3,3,1,Urban flash floods and drainage stress; lower agricultural drought exposure than ASAL counties.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Mombasa,4,4,2,Coastal storm surge and high-intensity rainfall; salinity stress in groundwater.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Kwale,4,4,2,Coastal flooding and seasonal river swelling.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Kilifi,4,4,2,Similar coastal flood dynamics; some dry spells inland.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Tana River,5,5,3,Major riverine floodplain; humanitarian flood cycles documented.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Garissa,4,3,4,Floods on low relief plains plus recurrent drought in wider ASAL system.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Wajir,3,2,5,Arid pastoral economy; drought dominates livelihood shocks.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Mandera,3,2,4,Arid border county; drought and security compound logistics of relief.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Turkana,3,2,5,Lake-level variability and long dry seasons.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Isiolo,3,2,4,ASAL rainfall volatility; periodic flash floods in wadis.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Samburu,3,2,4,Pastoral drought exposure with localized storm runoff.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Marsabit,3,2,4,Arid highlands / lowlands mix; drought cycles.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Baringo,3,3,3,Lake level rise/flooding documented; rangeland drought stress.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Homa Bay,4,4,2,Lake Victoria shoreline erosion and seasonal lake-level swings.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Kisumu,4,4,2,Lakeshore flooding and informal settlement drainage risk.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Siaya,3,3,2,Lake-adjacent flood pockets in wet years.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Busia,3,3,2,Lake-adjacent and riverine flood risk in extreme seasons.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Bungoma,3,3,2,Highland rainfall extremes; landslide pockets on steep slopes.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Elgeyo-Marakwet,4,3,2,Steep escarpment landslides during intense rains.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+West Pokot,3,3,3,Flash floods and landslides in escarpment zones.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Nyandarua,3,3,2,Highland rainfall and soil saturation risk.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Murang'a,3,3,2,Aberdare-adjacent river swelling and slope soil slips.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Kiambu,3,3,1,Rapid urbanisation increases impervious-surface flood risk.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Machakos,3,3,2,Semi-arid rainfall spikes; Athi basin runoff.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Kajiado,3,2,3,Drought in rangelands; localized storm floods near towns.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Nakuru,3,3,2,Lake level variability and urban flood pockets.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Narok,3,2,3,Maasai rangelands drought exposure; Mara basin floods episodic.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Laikipia,2,2,2,Mixed farming; moderate rainfall variability.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Uasin Gishu,2,2,2,Agricultural hail/drought windows lower than deep ASAL.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Nyeri,2,2,2,Highland agriculture; moderate storm risk.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Embu,2,2,2,Windward Mt Kenya rainfall; slope management matters.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Meru,2,2,2,Similar highland rain regime.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Kirinyaga,3,3,2,Irrigation-adjacent and riverine flood pockets.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Tharaka-Nithi,2,2,2,Seasonal river flooding in lower zones.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Kitui,3,2,4,Semi-arid Kitui sequence; drought dominates livelihood stress.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Makueni,3,2,4,Lower eastern rainfall reliability issues.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Taita-Taveta,3,3,2,Coastal hills flash floods; Tsavo aridity pockets.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Lamu,3,4,2,Archipelago storm exposure; sparse infrastructure redundancy.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Kakamega,2,2,2,High rainfall agriculture; moderate riverine risk.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Vihiga,2,2,2,Western highlands rainfall.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Nyamira,2,2,2,Western highlands rainfall.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Kisii,2,2,2,Highland agriculture; slope stability in extreme rains.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Migori,3,3,2,Lake-adjacent and riverine stressors.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Bomet,2,2,2,Tea/highland agriculture storm exposure.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Kericho,2,2,2,Tea belt rainfall extremes.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Nandi,2,2,2,Highland agriculture.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.
+Trans-Nzoia,2,2,2,Agricultural floodplain near rivers in wet years.,Illustrative 1-5 scale for portfolio demos. Replace with KNBS/NDMA/WB hazard layers for production decisions.

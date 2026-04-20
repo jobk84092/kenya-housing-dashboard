@@ -26,6 +26,13 @@ REQUIRED_COLUMNS = [
 
 ACCESSIBILITY_COLUMNS = ["schools_2km", "hospitals_3km", "transit_stops_1km"]
 
+OPTIONAL_LISTING_COLUMNS: dict[str, object] = {
+    "listing_type": "sale",
+    "sub_county": "",
+    "contact_phone": "",
+    "contact_email": "",
+}
+
 
 def validate_columns(df: pd.DataFrame) -> None:
     missing = [col for col in REQUIRED_COLUMNS if col not in df.columns]
@@ -41,15 +48,35 @@ def _ensure_accessibility_columns(df: pd.DataFrame) -> pd.DataFrame:
     return enriched
 
 
+def _ensure_optional_listing_columns(df: pd.DataFrame) -> pd.DataFrame:
+    out = df.copy()
+    for col, default in OPTIONAL_LISTING_COLUMNS.items():
+        if col not in out.columns:
+            out[col] = default
+        else:
+            out[col] = out[col].fillna(default)
+    if "listing_type" in out.columns:
+        lt = out["listing_type"].astype(str).str.strip().str.lower()
+        lt = lt.mask(lt.isin(["", "nan", "none"]), "sale")
+        out["listing_type"] = lt
+    return out
+
+
 def enrich_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     validate_columns(df)
-    enriched = _ensure_accessibility_columns(df)
+    enriched = _ensure_optional_listing_columns(df)
+    enriched = _ensure_accessibility_columns(enriched)
     enriched["monthly_income_benchmark"] = (
         enriched["county"].map(DEFAULT_INCOME_BY_COUNTY).fillna(80000)
     )
     # Affordability ratio approximates mortgage burden (30% income over 20 years).
+    # For rentals, `price_kes` is treated as monthly rent — scale by ~300 months as a crude buy-equivalent for scoring only.
+    lt = enriched["listing_type"].astype(str).str.lower() if "listing_type" in enriched.columns else None
+    eff_price = enriched["price_kes"].astype(float)
+    if lt is not None:
+        eff_price = eff_price.where(lt != "rent", eff_price * 300)
     enriched["affordability_ratio"] = (
-        enriched["price_kes"] / (enriched["monthly_income_benchmark"] * 12 * 20 * 0.30)
+        eff_price / (enriched["monthly_income_benchmark"] * 12 * 20 * 0.30)
     )
     enriched["affordability_score"] = (100 * (1 - enriched["affordability_ratio"])).clip(
         lower=0, upper=100
@@ -74,6 +101,7 @@ def filter_listings(
     min_bedrooms: int,
     min_overall_score: int,
     housing_programs: list[str] | None = None,
+    listing_types: list[str] | None = None,
 ) -> pd.DataFrame:
     mask = (
         (df["county"].isin(counties))
@@ -86,4 +114,9 @@ def filter_listings(
         if len(housing_programs) == 0:
             return df.iloc[0:0].copy()
         mask = mask & (df["housing_program"].isin(housing_programs))
+    if listing_types is not None and "listing_type" in df.columns:
+        if len(listing_types) == 0:
+            return df.iloc[0:0].copy()
+        lt = [str(x).strip().lower() for x in listing_types]
+        mask = mask & (df["listing_type"].astype(str).str.lower().isin(lt))
     return df[mask].copy()
