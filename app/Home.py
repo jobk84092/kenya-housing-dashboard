@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from scoring import enrich_dataframe, filter_listings
 from macro_dashboard import render_macro_dashboard
+from buyer_guide import render_buyer_guide
 
 st.set_page_config(page_title="Kenya Housing Dashboard", layout="wide")
 st.title("Kenya Housing Finder + Portfolio Dashboard")
@@ -129,8 +130,13 @@ filtered = filter_listings(
     housing_programs=housing_programs,
 )
 
-house_tab, macro_tab, intel_tab = st.tabs(
-    ["House-Hunt Dashboard", "Macro Dashboard", "Intelligence Output"]
+house_tab, guide_tab, macro_tab, intel_tab = st.tabs(
+    [
+        "House-Hunt Dashboard",
+        "Buyer & neighborhood guide",
+        "Macro Dashboard",
+        "Intelligence Output",
+    ]
 )
 
 with house_tab:
@@ -285,6 +291,9 @@ with house_tab:
             file_name="kenya_housing_shortlist.csv",
             mime="text/csv",
         )
+
+with guide_tab:
+    render_buyer_guide()
 
 with macro_tab:
     render_macro_dashboard(wb_df)

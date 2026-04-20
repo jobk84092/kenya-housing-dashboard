@@ -100,7 +100,7 @@ def generate(n: int, seed: int) -> pd.DataFrame:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate affordable-housing style listing inventory.")
-    parser.add_argument("--n", type=int, default=10_000, help="Number of listings to generate.")
+    parser.add_argument("--n", type=int, default=25_000, help="Number of listings to generate.")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility.")
     parser.add_argument(
         "--output",

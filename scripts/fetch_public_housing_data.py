@@ -12,13 +12,20 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
+from listing_import_utils import load_all_import_csvs
+
 BASE_DIR = Path(__file__).resolve().parents[1]
 RAW_DIR = BASE_DIR / "data" / "raw"
 PROCESSED_DIR = BASE_DIR / "data" / "processed"
 
-BOMA_URL = "https://legacy.bomayangu.go.ke/Ahp"
+BOMA_PAGES = [
+    "https://legacy.bomayangu.go.ke/Ahp",
+    "https://legacy.bomayangu.go.ke/",
+]
 BUYRENT_URL = "https://www.buyrentkenya.com/"
-USER_AGENT = "kenya-housing-dashboard/0.3 public-data collector"
+USER_AGENT = "kenya-housing-dashboard/0.4 public-data collector"
+
+IMPORTS_DIR = BASE_DIR / "data" / "raw" / "imports"
 
 
 PROJECT_COORD_HINTS: list[tuple[str, float, float, str]] = [
@@ -57,34 +64,43 @@ def _clean_units(value: object) -> int | None:
 
 
 def fetch_boma_projects() -> pd.DataFrame:
-    html = _request_text(BOMA_URL)
-    tables = pd.read_html(StringIO(html))
+    """Parse all HTML tables on multiple legacy Boma Yangu public pages (project names + units where present)."""
     rows: list[dict] = []
-    for table in tables:
-        lower_cols = {str(c).strip().lower(): c for c in table.columns}
-        project_col = None
-        units_col = None
-        for key, col in lower_cols.items():
-            if "project" in key and "name" in key:
-                project_col = col
-            if "unit" in key:
-                units_col = col
-        if project_col is None:
+    for page_url in BOMA_PAGES:
+        try:
+            html = _request_text(page_url)
+        except requests.RequestException as exc:
+            print(f"WARN: could not fetch Boma page {page_url}: {exc}", flush=True)
             continue
-        subset = table[[project_col] + ([units_col] if units_col is not None else [])].copy()
-        subset.columns = ["project_name"] + (["units_raw"] if units_col is not None else [])
-        for rec in subset.to_dict("records"):
-            name = str(rec.get("project_name", "")).strip()
-            if not name or name.lower() in {"nan", "none"}:
+        try:
+            tables = pd.read_html(StringIO(html))
+        except ValueError:
+            continue
+        for table in tables:
+            lower_cols = {str(c).strip().lower(): c for c in table.columns}
+            project_col = None
+            units_col = None
+            for key, col in lower_cols.items():
+                if "project" in key and "name" in key:
+                    project_col = col
+                if "unit" in key:
+                    units_col = col
+            if project_col is None:
                 continue
-            rows.append(
-                {
-                    "project_name": name,
-                    "units_declared": _clean_units(rec.get("units_raw")),
-                    "source": "Boma Yangu AHP page",
-                    "source_url": BOMA_URL,
-                }
-            )
+            subset = table[[project_col] + ([units_col] if units_col is not None else [])].copy()
+            subset.columns = ["project_name"] + (["units_raw"] if units_col is not None else [])
+            for rec in subset.to_dict("records"):
+                name = str(rec.get("project_name", "")).strip()
+                if not name or name.lower() in {"nan", "none"}:
+                    continue
+                rows.append(
+                    {
+                        "project_name": name,
+                        "units_declared": _clean_units(rec.get("units_raw")),
+                        "source": "Boma Yangu public HTML tables",
+                        "source_url": page_url,
+                    }
+                )
     out = pd.DataFrame(rows).drop_duplicates(subset=["project_name"])
     return out
 
@@ -97,15 +113,21 @@ def _project_location(project_name: str, rng: np.random.Generator) -> tuple[str,
     return "Nairobi", -1.286 + float(rng.uniform(-0.02, 0.02)), 36.817 + float(rng.uniform(-0.02, 0.02))
 
 
-def expand_boma_to_listings(projects: pd.DataFrame, max_rows: int, seed: int) -> pd.DataFrame:
+def expand_boma_to_listings(
+    projects: pd.DataFrame,
+    max_rows: int,
+    seed: int,
+    max_units_per_project: int,
+) -> pd.DataFrame:
     rng = np.random.default_rng(seed)
     listing_rows: list[dict] = []
     listing_id = 1
     for _, row in projects.iterrows():
         project_name = str(row["project_name"])
+        src_url = str(row.get("source_url", BOMA_PAGES[0]))
         units = row.get("units_declared")
-        units_count = int(units) if pd.notna(units) and units is not None else 600
-        units_count = min(units_count, 2500)
+        units_count = int(units) if pd.notna(units) and units is not None else 800
+        units_count = min(units_count, max_units_per_project)
         county, base_lat, base_lon = _project_location(project_name, rng)
         for _ in range(units_count):
             bedrooms = int(rng.choice([1, 2, 2, 2, 3, 3, 4]))
@@ -126,7 +148,7 @@ def expand_boma_to_listings(projects: pd.DataFrame, max_rows: int, seed: int) ->
                     "hospitals_3km": int(rng.integers(4, 18)),
                     "transit_stops_1km": int(rng.integers(5, 25)),
                     "source": "boma_yangu_public",
-                    "source_url": BOMA_URL,
+                    "source_url": src_url,
                     "price_estimated": True,
                 }
             )
@@ -182,7 +204,18 @@ def fetch_buyrent_latest() -> pd.DataFrame:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Fetch publicly available housing data sources.")
-    parser.add_argument("--max-boma-listings", type=int, default=15000)
+    parser.add_argument(
+        "--max-boma-listings",
+        type=int,
+        default=80_000,
+        help="Hard cap on total synthetic unit rows expanded from Boma project tables.",
+    )
+    parser.add_argument(
+        "--max-units-per-project",
+        type=int,
+        default=5_000,
+        help="Cap units expanded per project (prevents one mega-project from exploding row count).",
+    )
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 
@@ -191,30 +224,41 @@ def main() -> None:
 
     boma_projects = fetch_boma_projects()
     boma_projects.to_csv(RAW_DIR / "boma_projects_raw.csv", index=False)
-    boma_listings = expand_boma_to_listings(boma_projects, max_rows=args.max_boma_listings, seed=args.seed)
+    boma_listings = expand_boma_to_listings(
+        boma_projects,
+        max_rows=args.max_boma_listings,
+        seed=args.seed,
+        max_units_per_project=args.max_units_per_project,
+    )
 
     buyrent = fetch_buyrent_latest()
-    if not buyrent.empty:
-        buyrent["listing_id"] = np.arange(len(boma_listings) + 1, len(boma_listings) + len(buyrent) + 1)
+    imports = load_all_import_csvs(IMPORTS_DIR)
 
-    combined = pd.concat([boma_listings, buyrent], ignore_index=True)
+    parts = [boma_listings, buyrent]
+    if not imports.empty:
+        parts.append(imports)
+    combined = pd.concat(parts, ignore_index=True)
+    combined["listing_id"] = np.arange(1, len(combined) + 1)
     combined.to_csv(PROCESSED_DIR / "listings_public_master.csv", index=False)
 
     manifest = {
         "generated_at_utc": datetime.now(UTC).isoformat(),
         "sources": {
-            "boma_yangu_ahp": BOMA_URL,
+            "boma_yangu_pages": BOMA_PAGES,
             "buyrentkenya_homepage": BUYRENT_URL,
+            "csv_imports_dir": str(IMPORTS_DIR.relative_to(BASE_DIR)),
         },
         "counts": {
             "boma_projects": int(len(boma_projects)),
             "boma_expanded_listings": int(len(boma_listings)),
             "buyrent_public_rows": int(len(buyrent)),
+            "csv_import_rows": int(len(imports)),
             "combined_rows": int(len(combined)),
         },
         "notes": [
-            "Boma Yangu page provides project-level info; listing-level unit prices are estimated for analysis.",
-            "BuyRentKenya rows are parsed from publicly visible homepage listing snippets.",
+            "Boma Yangu public pages provide project-level tables; unit-level rows are expanded for analysis (see price_estimated).",
+            "BuyRentKenya: homepage snippets only by default — respect robots.txt; avoid bulk scraping without permission.",
+            "Drop CSV exports into data/raw/imports/ and re-run this script to merge (see listing_import_utils column mapping).",
         ],
     }
     (PROCESSED_DIR / "public_sources_manifest.json").write_text(

@@ -17,6 +17,7 @@ Designed for two goals:
 - Accessibility score (nearby schools, hospitals, transit proxy)
 - CSV export of filtered shortlist
 - **Macro playground** (World Bank): urbanisation, density, electricity, water, sanitation, internet, mobile, roads, air passengers, GDP, inflation, Gini, poverty, investment, industry, unemployment — dual-axis, area, bar, heat map, scatter
+- **Buyer & neighborhood guide** tab: checklists, demographic lenses, Nairobi area cheat-sheet, ethics note on portal data
 
 ## Data Sources
 
@@ -64,6 +65,24 @@ For faster local testing, you can run:
 ```bash
 python scripts/refresh_data.py --max-listings 5
 ```
+
+## Public listings ingest (Boma + optional CSV imports)
+
+```bash
+python scripts/fetch_public_housing_data.py
+```
+
+- Pulls **multiple legacy Boma Yangu public pages** and merges HTML tables into project rows, then expands to unit-level rows (analytical; `price_estimated=true` where applicable).
+- Merges **BuyRentKenya homepage** snippets (respectful volume only).
+- Merges any **`data/raw/imports/*.csv`** you drop in (exported columns like `title`, `price`, `county`, … — see `scripts/listing_import_utils.py`).
+
+Tune caps:
+
+```bash
+python scripts/fetch_public_housing_data.py --max-boma-listings 120000 --max-units-per-project 8000
+```
+
+**Ethics:** bulk scraping of commercial listing sites often violates their Terms of Use. Prefer **official exports**, **partner APIs**, or **your own CSVs** in `data/raw/imports/`. This repo does not ship aggressive multi-page portal crawlers.
 
 ## Scoring Logic (MVP)
 
