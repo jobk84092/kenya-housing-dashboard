@@ -1,0 +1,21 @@
+listing_id,county,estate,latitude,longitude,price_kes,bedrooms,property_type,schools_2km,hospitals_3km,transit_stops_1km
+1,Nairobi,Kilimani,-1.2921,36.8219,8500000,2,apartment,9,6,15
+2,Nairobi,Westlands,-1.2676,36.8108,12000000,3,apartment,8,7,14
+3,Nakuru,Lanet,-0.3031,36.0800,6500000,3,house,5,3,6
+4,Nairobi,Ruiru,-1.1464,36.9600,6800000,3,house,6,3,8
+5,Nairobi,Embakasi,-1.3130,36.8950,5400000,2,apartment,7,4,10
+6,Kiambu,Thindigua,-1.2050,36.8020,7400000,2,apartment,8,5,9
+7,Kiambu,Ruaka,-1.2068,36.7750,8900000,3,apartment,7,4,11
+8,Kiambu,Kikuyu,-1.2462,36.6632,5100000,3,house,6,3,7
+9,Mombasa,Nyali,-4.0383,39.7040,9800000,3,apartment,8,6,8
+10,Mombasa,Bamburi,-3.9787,39.7267,6000000,2,apartment,6,4,7
+11,Mombasa,Likoni,-4.0900,39.6600,4200000,2,house,4,2,5
+12,Kisumu,Milimani,-0.0917,34.7680,5600000,3,house,7,5,6
+13,Kisumu,Manyatta,-0.1170,34.7610,3200000,2,house,5,3,5
+14,Nakuru,Section 58,-0.2730,36.0690,7200000,4,house,7,4,6
+15,Nakuru,Pipeline,-0.2960,36.0540,3900000,2,apartment,5,2,6
+16,Uasin Gishu,Elgon View,0.4980,35.2890,8300000,4,house,6,4,7
+17,Uasin Gishu,Langas,0.4990,35.2590,4100000,2,apartment,5,3,6
+18,Machakos,Athi River,-1.4560,36.9780,6300000,3,house,6,3,8
+19,Kajiado,Kitengela,-1.4760,36.9630,5800000,3,house,5,3,7
+20,Kajiado,Ongata Rongai,-1.3970,36.7640,6900000,3,apartment,7,4,9

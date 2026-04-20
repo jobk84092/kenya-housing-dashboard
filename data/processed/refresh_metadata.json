@@ -1,0 +1,22 @@
+{
+  "generated_at_utc": "2026-04-20T16:53:08.192983+00:00",
+  "run_parameters": {
+    "max_listings": 5,
+    "request_pause_sec": 0.8
+  },
+  "sources": {
+    "listings_base": "data/sample/listings_sample.csv",
+    "accessibility_api": "https://nominatim.openstreetmap.org/search",
+    "macro_api": "https://api.worldbank.org"
+  },
+  "outputs": {
+    "listings_enriched": "data/processed/listings_enriched.csv",
+    "worldbank_indicators": "data/processed/worldbank_indicators_ke.csv"
+  },
+  "row_counts": {
+    "listings_enriched": 5,
+    "worldbank_indicators": 198
+  },
+  "warnings": [],
+  "quality_status": "passed"
+}

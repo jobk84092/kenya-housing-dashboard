@@ -1,0 +1,6 @@
+listing_id,county,estate,latitude,longitude,price_kes,bedrooms,property_type,schools_2km,hospitals_3km,transit_stops_1km
+1,Nairobi,Kilimani,-1.2921,36.8219,8500000,2,apartment,50,100,13
+2,Nairobi,Westlands,-1.2676,36.8108,12000000,3,apartment,50,66,9
+3,Nakuru,Lanet,-0.3031,36.08,6500000,3,house,24,12,0
+4,Nairobi,Ruiru,-1.1464,36.96,6800000,3,house,17,4,0
+5,Nairobi,Embakasi,-1.313,36.895,5400000,2,apartment,50,85,4

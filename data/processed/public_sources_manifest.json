@@ -1,0 +1,17 @@
+{
+  "generated_at_utc": "2026-04-20T17:35:22.847820+00:00",
+  "sources": {
+    "boma_yangu_ahp": "https://legacy.bomayangu.go.ke/Ahp",
+    "buyrentkenya_homepage": "https://www.buyrentkenya.com/"
+  },
+  "counts": {
+    "boma_projects": 19,
+    "boma_expanded_listings": 19000,
+    "buyrent_public_rows": 8,
+    "combined_rows": 19008
+  },
+  "notes": [
+    "Boma Yangu page provides project-level info; listing-level unit prices are estimated for analysis.",
+    "BuyRentKenya rows are parsed from publicly visible homepage listing snippets."
+  ]
+}
