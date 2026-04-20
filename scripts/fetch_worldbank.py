@@ -14,6 +14,7 @@ DEFAULT_INDICATORS = [
     "SP.URB.TOTL.IN.ZS",  # Urban population (% of total)
     "EN.POP.DNST",  # Population density (people per sq km of land)
     "NY.GDP.PCAP.CD",  # GDP per capita (current US$)
+    "NY.GDP.PCAP.KD.ZG",  # GDP per capita growth (annual %)
     "NY.GDP.MKTP.KD.ZG",  # GDP growth (annual %)
     "FP.CPI.TOTL.ZG",  # Inflation, consumer prices (annual %)
     "SI.POV.GINI",  # Gini index

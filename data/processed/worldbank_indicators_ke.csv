@@ -712,6 +712,72 @@ KE,NY.GDP.PCAP.CD,GDP per capita (current US$),2022,2109.56288513137
 KE,NY.GDP.PCAP.CD,GDP per capita (current US$),2023,1942.58802756191
 KE,NY.GDP.PCAP.CD,GDP per capita (current US$),2024,2132.43452097647
 KE,NY.GDP.PCAP.CD,GDP per capita (current US$),2025,
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1960,
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1961,-11.1513604419023
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1962,5.34856718516423
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1963,4.63467589113695
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1964,0.922365577792576
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1965,-1.97317083215169
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1966,10.2453783737033
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1967,-0.658711109434691
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1968,3.79670171210267
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1969,3.80581664358147
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1970,-8.25406759214241
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1971,17.820065627684
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1972,13.0810040007777
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1973,2.30288023865035
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1974,0.600157426524987
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1975,-2.414863097742
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1976,-1.10989817440527
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1977,5.87941024320102
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1978,3.2950316756188
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1979,3.9502014523985
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1980,1.91506413946645
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1981,0.128998105818283
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1982,-2.06071312546143
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1983,-2.3251867559766
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1984,-1.91893717292913
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1985,0.569650556250821
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1986,3.40845945197678
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1987,2.26586113193359
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1988,2.52259696361155
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1989,1.0826542002969
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1990,0.668332502815062
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1991,-1.79555975482411
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1992,-3.79370437133613
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1993,-2.58233453633143
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1994,-0.304212273442516
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1995,1.4837374235438
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1996,1.31900626661266
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1997,-2.23366307984048
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1998,0.478811112143987
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),1999,-0.603257549690113
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),2000,-2.38610693277963
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),2001,0.575576747494395
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),2002,-2.56736280977373
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),2003,-0.194798007216917
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),2004,1.89113513278383
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),2005,2.70244103195117
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),2006,3.27715457506901
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),2007,3.66978666216018
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),2008,-2.7588645638462
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),2009,0.232598394599862
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),2010,4.96811299885232
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),2011,2.26952218964762
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),2012,1.87670753904403
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),2013,1.26331129067221
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),2014,2.59218353342239
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),2015,2.65589352795405
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),2016,1.93794795580835
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),2017,1.60475183361922
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),2018,3.52404781491717
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),2019,3.07004769448449
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),2020,-2.2103217118529
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),2021,5.5651365159048
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),2022,2.86281276489714
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),2023,3.64425548577437
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),2024,2.6946724258593
+KE,NY.GDP.PCAP.KD.ZG,GDP per capita growth (annual %),2025,
 KE,SE.SEC.ENRR,"School enrollment, secondary (% gross)",1960,
 KE,SE.SEC.ENRR,"School enrollment, secondary (% gross)",1961,
 KE,SE.SEC.ENRR,"School enrollment, secondary (% gross)",1962,

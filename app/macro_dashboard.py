@@ -12,6 +12,8 @@ import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
 
+from jobs_housing_stress import render_jobs_housing_stress
+
 
 def _wb_slice(df: pd.DataFrame, codes: list[str]) -> pd.DataFrame:
     if df.empty or "indicator_code" not in df.columns:
@@ -33,7 +35,11 @@ def _short_name(name: str, max_len: int = 42) -> str:
     return text if len(text) <= max_len else text[: max_len - 1] + "…"
 
 
-def render_macro_dashboard(wb_df: pd.DataFrame) -> None:
+def render_macro_dashboard(
+    wb_df: pd.DataFrame,
+    listing_median_kes: float | None = None,
+    listing_count: int | None = None,
+) -> None:
     st.header("Kenya macro playground")
     st.markdown(
         "This page connects **national development trends** to **why housing feels the way it does**: "
@@ -87,8 +93,14 @@ def render_macro_dashboard(wb_df: pd.DataFrame) -> None:
             """
         )
 
-    tab_a, tab_b, tab_c, tab_d = st.tabs(
-        ["Urban & population", "Infrastructure & connectivity", "Economy & prices", "Explorer & heat map"]
+    tab_a, tab_b, tab_c, tab_d, tab_e = st.tabs(
+        [
+            "Urban & population",
+            "Infrastructure & connectivity",
+            "Economy & prices",
+            "Explorer & heat map",
+            "Jobs vs housing stress",
+        ]
     )
 
     with tab_a:
@@ -316,6 +328,13 @@ def render_macro_dashboard(wb_df: pd.DataFrame) -> None:
             fig_s.update_traces(textposition="top center", marker=dict(size=10))
             fig_s.update_layout(template="plotly_white")
             st.plotly_chart(fig_s, use_container_width=True)
+
+    with tab_e:
+        render_jobs_housing_stress(
+            wb,
+            listing_median_kes=listing_median_kes,
+            listing_count=listing_count,
+        )
 
     st.divider()
     st.markdown(

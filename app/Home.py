@@ -296,7 +296,8 @@ with guide_tab:
     render_buyer_guide()
 
 with macro_tab:
-    render_macro_dashboard(wb_df)
+    _med = float(df["price_kes"].median()) if not df.empty else None
+    render_macro_dashboard(wb_df, listing_median_kes=_med, listing_count=len(df) if not df.empty else None)
 
 with intel_tab:
     st.subheader("Decision Intelligence")
