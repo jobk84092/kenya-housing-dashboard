@@ -7,6 +7,9 @@ import xml.etree.ElementTree as ET
 import pandas as pd
 import streamlit as st
 
+from buyer_guide import render_buyer_guide
+from macro_dashboard import render_macro_dashboard
+from places_risk import render_places_risk
 from scoring import enrich_dataframe
 
 st.set_page_config(page_title="Kenya Affordable Housing Dashboard", layout="wide")
@@ -135,6 +138,30 @@ def build_developments(frame: pd.DataFrame) -> pd.DataFrame:
     return grouped
 
 
+def build_typology_matrix(frame: pd.DataFrame) -> pd.DataFrame:
+    frame = frame.copy()
+    frame["typology"] = (
+        frame["bedrooms"].fillna(0).astype(int).astype(str)
+        + "BR "
+        + frame["property_type"].astype(str).str.title()
+    )
+    node_order = ["Nairobi Metro", "Coast Metro", "Rift Valley Metro", "Lake Metro"]
+    market = frame[frame["metro_node"].isin(node_order)].copy()
+    if market.empty:
+        return pd.DataFrame()
+    top_typologies = market["typology"].value_counts().head(10).index
+    market = market[market["typology"].isin(top_typologies)]
+    typology_matrix = (
+        market.groupby(["typology", "metro_node"], as_index=False)["price_kes"]
+        .median()
+        .pivot(index="typology", columns="metro_node", values="price_kes")
+    )
+    typology_matrix = typology_matrix.reindex(columns=node_order)
+    return typology_matrix.apply(
+        lambda col: col.map(lambda value: format_kes(value) if pd.notna(value) else "-")
+    )
+
+
 df = load_data()
 metadata = get_refresh_metadata()
 wb_df = load_worldbank_data()
@@ -155,67 +182,72 @@ external_news = fetch_external_news()
 
 st.title("Kenya Affordable Housing Dashboard")
 st.caption(
-    "Beginner view: independent housing news, active developments, and simple market stats."
+    "Simple first view, with deeper economic and place-based pages available below."
 )
 
-news_col, dev_col, stats_col = st.columns([1.2, 1.2, 1])
-
-with news_col:
-    st.subheader("News & research updates")
-    if external_news:
-        for item in external_news[:6]:
-            st.markdown(f"- [{item['title']}]({item['link']})")
-            st.caption(f"{item['source']} | {item['published']}")
-    else:
-        st.info("Could not fetch external feeds right now. Try again in a moment.")
-
-with dev_col:
-    st.subheader("Developments")
-    developments = build_developments(df)
-    st.dataframe(developments, use_container_width=True, hide_index=True)
-    st.caption("Major metro nodes with most listings and their current median prices.")
-
-with stats_col:
-    st.subheader("Stats (open data)")
-    st.metric("Total listings", f"{len(df):,}")
-    st.metric("Median price", format_kes(df["price_kes"].median()))
-    affordable_share = (df["price_kes"] <= 5_000_000).mean() * 100
-    st.metric("Homes <= KES 5M", f"{affordable_share:.0f}%")
-    urban_share, urban_year = latest_indicator(wb_df, "SP.URB.TOTL.IN.ZS")
-    if urban_share is not None and urban_year is not None:
-        st.metric("Urban population", f"{urban_share:.1f}% ({urban_year})")
-    inflation, inflation_year = latest_indicator(wb_df, "FP.CPI.TOTL.ZG")
-    if inflation is not None and inflation_year is not None:
-        st.metric("Inflation", f"{inflation:.1f}% ({inflation_year})")
-
-st.divider()
-st.subheader("Median home prices by typology across metro nodes")
-df["typology"] = (
-    df["bedrooms"].fillna(0).astype(int).astype(str)
-    + "BR "
-    + df["property_type"].astype(str).str.title()
+home_tab, econ_tab, dev_tab, guide_tab, growth_tab = st.tabs(
+    ["Home (Simple)", "Economic Data", "Developments", "Buyer Guide", "Growth & Environment"]
 )
-node_order = ["Nairobi Metro", "Coast Metro", "Rift Valley Metro", "Lake Metro"]
-market = df[df["metro_node"].isin(node_order)].copy()
-top_typologies = market["typology"].value_counts().head(10).index
-market = market[market["typology"].isin(top_typologies)]
-typology_matrix = (
-    market.groupby(["typology", "metro_node"], as_index=False)["price_kes"]
-    .median()
-    .pivot(index="typology", columns="metro_node", values="price_kes")
-)
-typology_matrix = typology_matrix.reindex(columns=node_order)
-typology_matrix = typology_matrix.apply(
-    lambda col: col.map(lambda value: format_kes(value) if pd.notna(value) else "-")
-)
-st.dataframe(typology_matrix, use_container_width=True)
 
-with st.expander("How to read this dashboard"):
-    st.markdown(
-        """
-        - **News & research updates**: headlines from free public news/research feeds.
-        - **Developments**: where listings are currently concentrated by metro node.
-        - **Stats**: combines dashboard listings with open World Bank indicators.
-        - **Typology matrix**: compare median prices for similar unit types across metros.
-        """
+with home_tab:
+    news_col, dev_col, stats_col = st.columns([1.2, 1.2, 1])
+
+    with news_col:
+        st.subheader("News & research updates")
+        if external_news:
+            for item in external_news[:6]:
+                st.markdown(f"- [{item['title']}]({item['link']})")
+                st.caption(f"{item['source']} | {item['published']}")
+        else:
+            st.info("Could not fetch external feeds right now. Try again in a moment.")
+
+    with dev_col:
+        st.subheader("Developments")
+        developments = build_developments(df)
+        st.dataframe(developments, use_container_width=True, hide_index=True)
+        st.caption("Major metro nodes with most listings and their current median prices.")
+
+    with stats_col:
+        st.subheader("Stats (open data)")
+        st.metric("Total listings", f"{len(df):,}")
+        st.metric("Median price", format_kes(df["price_kes"].median()))
+        affordable_share = (df["price_kes"] <= 5_000_000).mean() * 100
+        st.metric("Homes <= KES 5M", f"{affordable_share:.0f}%")
+        urban_share, urban_year = latest_indicator(wb_df, "SP.URB.TOTL.IN.ZS")
+        if urban_share is not None and urban_year is not None:
+            st.metric("Urban population", f"{urban_share:.1f}% ({urban_year})")
+        inflation, inflation_year = latest_indicator(wb_df, "FP.CPI.TOTL.ZG")
+        if inflation is not None and inflation_year is not None:
+            st.metric("Inflation", f"{inflation:.1f}% ({inflation_year})")
+
+    with st.expander("How to read this dashboard"):
+        st.markdown(
+            """
+            - **News & research updates**: headlines from free public news/research feeds.
+            - **Developments**: where listings are currently concentrated by metro node.
+            - **Stats**: combines dashboard listings with open World Bank indicators.
+            - Use top tabs to access deep analysis pages.
+            """
+        )
+
+with econ_tab:
+    render_macro_dashboard(
+        wb_df,
+        listing_median_kes=float(df["price_kes"].median()) if not df.empty else None,
+        listing_count=len(df),
     )
+
+with dev_tab:
+    st.subheader("Median home prices by typology across metro nodes")
+    typology_matrix = build_typology_matrix(df)
+    if typology_matrix.empty:
+        st.info("No metro-node data available yet for typology comparison.")
+    else:
+        st.dataframe(typology_matrix, use_container_width=True)
+    st.caption("Rows are common unit typologies; columns are major metro nodes.")
+
+with guide_tab:
+    render_buyer_guide()
+
+with growth_tab:
+    render_places_risk(df, df)
