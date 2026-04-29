@@ -205,8 +205,8 @@ typology_matrix = (
     .pivot(index="typology", columns="metro_node", values="price_kes")
 )
 typology_matrix = typology_matrix.reindex(columns=node_order)
-typology_matrix = typology_matrix.applymap(
-    lambda value: format_kes(value) if pd.notna(value) else "-"
+typology_matrix = typology_matrix.apply(
+    lambda col: col.map(lambda value: format_kes(value) if pd.notna(value) else "-")
 )
 st.dataframe(typology_matrix, use_container_width=True)
 
