@@ -250,28 +250,7 @@ def render_macro_dashboard(
 
     with tab_d:
         st.subheader("Compare everything at once")
-        st.caption("Heat map: each row is an indicator, each column is a year. Colour = z-score within that indicator (so different units can sit on one chart).")
-
-        pivot = wb.pivot_table(index="indicator_code", columns="year", values="value", aggfunc="last")
-        pivot = pivot.loc[:, pivot.columns >= (pivot.columns.max() - 45)] if len(pivot.columns) else pivot
-        pivot = pivot.dropna(axis=0, how="all").dropna(axis=1, how="all")
-        if pivot.shape[0] >= 2 and pivot.shape[1] >= 3:
-            z = pivot.sub(pivot.mean(axis=1), axis=0).div(pivot.std(axis=1).replace(0, float("nan")), axis=0)
-            z = z.dropna(axis=0, how="all").fillna(0)
-            name_map = wb.drop_duplicates("indicator_code").set_index("indicator_code")["indicator_name"].to_dict()
-            z.index = [f"{i}: {_short_name(str(name_map.get(i, i)), 36)}" for i in z.index]
-            fig_h = px.imshow(
-                z,
-                aspect="auto",
-                title="Relative strength vs each indicator's own history (last ~45 years)",
-                color_continuous_scale="RdBu_r",
-                zmin=-2,
-                zmax=2,
-            )
-            fig_h.update_layout(template="plotly_white", xaxis_title="Year", yaxis_title="Indicator")
-            st.plotly_chart(fig_h, use_container_width=True)
-        else:
-            st.info("Not enough overlapping years for a heat map yet — fetch more indicators or widen the year window.")
+        st.caption("Use the controls below to inspect one indicator or compare two indicators directly.")
 
         st.subheader("Pick-your-own adventure")
         opts = (
