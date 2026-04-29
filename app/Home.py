@@ -1,377 +1,173 @@
-import streamlit as st
-import pandas as pd
-import pydeck as pdk
-import plotly.express as px
 import json
 from pathlib import Path
-from scoring import enrich_dataframe, filter_listings
-from macro_dashboard import render_macro_dashboard
-from buyer_guide import render_buyer_guide
-from places_risk import render_places_risk
 
-st.set_page_config(page_title="Kenya Housing Dashboard", layout="wide")
+import pandas as pd
+import streamlit as st
 
-MAP_MAX_SCATTER_POINTS = 12_000
+from scoring import enrich_dataframe
+
+st.set_page_config(page_title="Kenya Affordable Housing Dashboard", layout="wide")
+
 MEGA_PARQUET = Path("data/processed/listings_mega.parquet")
-st.title("Kenya Housing Finder + Portfolio Dashboard")
-st.caption("Open-data style housing analytics for practical house hunting in Kenya.")
+
 
 @st.cache_data
 def load_data() -> pd.DataFrame:
-    """Prefer mega parquet (millions-scale load tests), public master, bulk sample, enriched, tiny sample."""
     public_path = Path("data/processed/listings_public_master.csv")
     bulk_path = Path("data/sample/listings_affordable_bulk.csv")
     enriched_path = Path("data/processed/listings_enriched.csv")
     sample_path = Path("data/sample/listings_sample.csv")
+
     if MEGA_PARQUET.exists():
         try:
-            df = pd.read_parquet(MEGA_PARQUET)
-            return enrich_dataframe(df)
+            return enrich_dataframe(pd.read_parquet(MEGA_PARQUET))
         except ImportError as exc:
             raise RuntimeError(
-                "Install pyarrow (`pip install pyarrow`) to read data/processed/listings_mega.parquet, "
-                "or remove that file to fall back to CSV sources."
+                "Install pyarrow (`pip install pyarrow`) to read parquet data."
             ) from exc
     if public_path.exists():
-        df = pd.read_csv(public_path)
-    elif bulk_path.exists():
-        df = pd.read_csv(bulk_path)
-    elif enriched_path.exists():
-        df = pd.read_csv(enriched_path)
-    else:
-        df = pd.read_csv(sample_path)
-    return enrich_dataframe(df)
+        return enrich_dataframe(pd.read_csv(public_path))
+    if bulk_path.exists():
+        return enrich_dataframe(pd.read_csv(bulk_path))
+    if enriched_path.exists():
+        return enrich_dataframe(pd.read_csv(enriched_path))
+    return enrich_dataframe(pd.read_csv(sample_path))
 
 
 def get_refresh_metadata() -> dict:
     metadata_path = Path("data/processed/refresh_metadata.json")
     if not metadata_path.exists():
         return {}
-    with metadata_path.open("r", encoding="utf-8") as f:
-        return json.load(f)
+    with metadata_path.open("r", encoding="utf-8") as handle:
+        return json.load(handle)
 
 
-@st.cache_data
-def load_worldbank_data() -> pd.DataFrame:
-    wb_path = Path("data/processed/worldbank_indicators_ke.csv")
-    if not wb_path.exists():
-        return pd.DataFrame()
-    wb = pd.read_csv(wb_path)
-    if not {"indicator_code", "indicator_name", "year", "value"}.issubset(wb.columns):
-        return pd.DataFrame()
-    wb["year"] = pd.to_numeric(wb["year"], errors="coerce")
-    wb["value"] = pd.to_numeric(wb["value"], errors="coerce")
-    return wb.dropna(subset=["year", "value"]).copy()
+def format_kes(value: float) -> str:
+    return f"KES {int(value):,}"
 
 
-def compute_insights(frame: pd.DataFrame) -> list[str]:
-    if frame.empty:
-        return ["No listings match the current filters."]
-    insights = []
-    best = frame.sort_values("overall_score", ascending=False).iloc[0]
-    insights.append(
-        f"Top pick right now is {best['estate']} ({best['county']}) with overall score {best['overall_score']:.1f}."
+def build_news_items(frame: pd.DataFrame, metadata: dict) -> list[tuple[str, str]]:
+    refresh_time = metadata.get("generated_at_utc", "not available yet")
+    items = [
+        (
+            "Latest data refresh",
+            f"Our housing data was last refreshed on: {refresh_time}.",
+        )
+    ]
+
+    cheapest = (
+        frame.groupby("county", as_index=False)["price_kes"]
+        .median()
+        .sort_values("price_kes", ascending=True)
+        .head(1)
     )
-    affordable_share = (frame["affordability_score"] >= 60).mean() * 100
-    insights.append(f"{affordable_share:.0f}% of filtered listings pass the affordability threshold (>=60).")
-    high_access_share = (frame["accessibility_score"] >= 60).mean() * 100
-    insights.append(f"{high_access_share:.0f}% of filtered listings have strong accessibility (>=60).")
-    return insights
+    if not cheapest.empty:
+        row = cheapest.iloc[0]
+        items.append(
+            (
+                "Most affordable county in current listings",
+                f"{row['county']} has the lowest median listing price at {format_kes(row['price_kes'])}.",
+            )
+        )
+
+    if "housing_program" in frame.columns and frame["housing_program"].notna().any():
+        top_program = frame["housing_program"].value_counts().head(1)
+        if not top_program.empty:
+            items.append(
+                (
+                    "Most visible affordable housing program",
+                    f"{top_program.index[0]} currently has the most listings in this dashboard.",
+                )
+            )
+    else:
+        active_county = frame["county"].value_counts().head(1)
+        if not active_county.empty:
+            items.append(
+                (
+                    "Most active location",
+                    f"{active_county.index[0]} currently has the highest number of visible listings.",
+                )
+            )
+    return items
+
+
+def build_developments(frame: pd.DataFrame) -> pd.DataFrame:
+    if "housing_program" in frame.columns and frame["housing_program"].notna().any():
+        grouped = (
+            frame.groupby("housing_program", as_index=False)
+            .agg(
+                listings=("listing_id", "count"),
+                median_price=("price_kes", "median"),
+                avg_score=("overall_score", "mean"),
+            )
+            .sort_values("listings", ascending=False)
+            .head(8)
+        )
+        grouped = grouped.rename(columns={"housing_program": "development"})
+    else:
+        grouped = (
+            frame.groupby("county", as_index=False)
+            .agg(
+                listings=("listing_id", "count"),
+                median_price=("price_kes", "median"),
+                avg_score=("overall_score", "mean"),
+            )
+            .sort_values("listings", ascending=False)
+            .head(8)
+            .rename(columns={"county": "development"})
+        )
+
+    grouped["median_price"] = grouped["median_price"].map(format_kes)
+    grouped["avg_score"] = grouped["avg_score"].round(1)
+    return grouped
 
 
 df = load_data()
-wb_df = load_worldbank_data()
 metadata = get_refresh_metadata()
-_public_path = Path("data/processed/listings_public_master.csv")
-_bulk_path = Path("data/sample/listings_affordable_bulk.csv")
-if MEGA_PARQUET.exists():
-    st.success(
-        f"**{len(df):,} listings** loaded from **{MEGA_PARQUET.name}** (Parquet). "
-        "Use this path for million-row load tests; keep PII fields empty unless you have a lawful data agreement."
-    )
-elif _public_path.exists():
-    st.success(
-        f"**{len(df):,} listings** loaded from public-source pipeline (`listings_public_master.csv`). "
-        "Includes Boma Yangu project-level public data (expanded to unit-level analytical rows) and "
-        "BuyRentKenya public homepage snippets."
-    )
-elif _bulk_path.exists() and len(df) >= 1000:
-    st.success(
-        f"**{len(df):,} listings** loaded from affordable-style bulk inventory (Boma Yangu/AHP, Tsavo corridor, coast, county programmes — synthetic, not an official Boma Yangu API export)."
-    )
-if metadata:
-    st.info(
-        "Data refreshed at: "
-        + metadata.get("generated_at_utc", "unknown")
-        + " | Sources: OpenStreetMap Nominatim + World Bank API"
-    )
-else:
-    st.warning(
-        "Listings file has no refresh metadata yet. For thousands of affordable-style units, run "
-        "`python scripts/generate_affordable_inventory.py`. For live OSM counts on a subset, run "
-        "`python scripts/refresh_data.py`."
-    )
 
-with st.sidebar:
-    st.header("Your House-Hunt Filters")
-    if "housing_program" in df.columns:
-        programs = sorted(df["housing_program"].dropna().unique())
-        housing_programs = st.multiselect(
-            "Housing program / corridor",
-            programs,
-            default=programs,
-            help="Program tag for filtering. Public-source pipeline includes Boma Yangu/AHP project-derived rows and BuyRentKenya public snippets.",
-        )
-    else:
-        housing_programs = None
-    counties = st.multiselect("County", sorted(df["county"].unique()), default=sorted(df["county"].unique()))
-    prop_types = st.multiselect(
-        "Property type",
-        sorted(df["property_type"].unique()),
-        default=sorted(df["property_type"].unique()),
-    )
-    min_price, max_price = int(df["price_kes"].min()), int(df["price_kes"].max())
-    price_range = st.slider("Price range (KES)", min_price, max_price, (min_price, max_price), step=100000)
-    max_bed = int(df["bedrooms"].max())
-    bedrooms = st.slider("Minimum bedrooms", 1, max_bed, 2)
-    min_overall_score = st.slider("Minimum overall score", 0, 100, 40)
-    listing_types_sel: list[str] | None = None
-    if "listing_type" in df.columns:
-        lt_opts = sorted(df["listing_type"].dropna().astype(str).str.lower().unique())
-        if lt_opts:
-            listing_types_sel = st.multiselect(
-                "Listing type",
-                lt_opts,
-                default=lt_opts,
-                help="Sale rows use full asking price; rent rows use monthly rent in `price_kes` when generated that way.",
-            )
-
-filtered = filter_listings(
-    df=df,
-    counties=counties,
-    property_types=prop_types,
-    min_price=price_range[0],
-    max_price=price_range[1],
-    min_bedrooms=bedrooms,
-    min_overall_score=min_overall_score,
-    housing_programs=housing_programs,
-    listing_types=listing_types_sel,
+st.title("Kenya Affordable Housing Dashboard")
+st.caption(
+    "A simple home page for beginners: see what is happening, where developments are active, and the key numbers."
 )
 
-house_tab, guide_tab, places_tab, macro_tab, intel_tab = st.tabs(
-    [
-        "House-Hunt Dashboard",
-        "Buyer & neighborhood guide",
-        "Growth & environment",
-        "Macro Dashboard",
-        "Intelligence Output",
-    ]
-)
+news_col, dev_col, stats_col = st.columns([1.2, 1.2, 1])
 
-with house_tab:
+with news_col:
+    st.subheader("News")
+    for headline, detail in build_news_items(df, metadata):
+        st.markdown(f"**{headline}**")
+        st.write(detail)
+
+with dev_col:
+    st.subheader("Developments")
+    developments = build_developments(df)
+    st.dataframe(developments, use_container_width=True, hide_index=True)
+
+with stats_col:
+    st.subheader("Stats")
+    st.metric("Total listings", f"{len(df):,}")
+    st.metric("Median price", format_kes(df["price_kes"].median()))
+    st.metric("Average score", f"{df['overall_score'].mean():.1f} / 100")
+    below_5m = (df["price_kes"] <= 5_000_000).mean() * 100
+    st.metric("Homes <= KES 5M", f"{below_5m:.0f}%")
+
+st.divider()
+st.subheader("Starter shortlist (first look)")
+starter = (
+    df.sort_values("overall_score", ascending=False)
+    .head(12)[["county", "estate", "property_type", "bedrooms", "price_kes", "overall_score"]]
+    .copy()
+)
+starter["price_kes"] = starter["price_kes"].map(format_kes)
+starter["overall_score"] = starter["overall_score"].round(1)
+st.dataframe(starter, use_container_width=True, hide_index=True)
+
+with st.expander("How to read this dashboard"):
     st.markdown(
-        "Use this page to narrow your shortlist. Higher `overall_score` means a better balance of affordability and access."
+        """
+        - **News**: quick plain-language updates from the latest housing data.
+        - **Developments**: areas/programs where most listings are currently showing up.
+        - **Stats**: headline numbers to understand pricing and availability at a glance.
+        - **Starter shortlist**: top options based on affordability + accessibility score.
+        """
     )
-    if "housing_program" in df.columns:
-        st.caption(
-            f"Loaded **{len(df):,}** listings (affordable-style synthetic inventory). "
-            "Boma Yangu does not publish a public bulk API; this dataset models project names, "
-            "corridors, and price bands for analysis and demos."
-        )
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Listings found", f"{len(filtered)}")
-    col2.metric("Median price", f"KES {int(filtered['price_kes'].median()):,}" if not filtered.empty else "N/A")
-    col3.metric(
-        "Avg affordability score",
-        f"{filtered['affordability_score'].mean():.1f}" if not filtered.empty else "N/A",
-    )
-    col4.metric(
-        "Avg accessibility score",
-        f"{filtered['accessibility_score'].mean():.1f}" if not filtered.empty else "N/A",
-    )
-
-    if filtered.empty:
-        st.warning("No listings match your filters. Try widening price range or lowering score threshold.")
-    else:
-        chart_left, chart_right = st.columns(2)
-        with chart_left:
-            st.subheader("Price Distribution")
-            st.caption(
-                "How to read: each bar shows how many listings fall in a price band. Taller bars mean more options at that budget level."
-            )
-            fig_hist = px.histogram(
-                filtered,
-                x="price_kes",
-                nbins=10,
-                color="property_type",
-                barmode="overlay",
-                labels={"price_kes": "Listing price (KES)", "count": "Number of listings"},
-            )
-            fig_hist.update_layout(
-                xaxis_tickformat=",.0f",
-                legend_title_text="Property type",
-                margin=dict(l=10, r=10, t=40, b=10),
-            )
-            st.plotly_chart(fig_hist, use_container_width=True)
-
-        with chart_right:
-            st.subheader("Top Areas by Score")
-            st.caption(
-                "How to read: areas on top rank better for your current filters and score settings. Longer bar = stronger recommendation."
-            )
-            top_areas = (
-                filtered.groupby(["county", "estate"], as_index=False)["overall_score"]
-                .mean()
-                .sort_values("overall_score", ascending=False)
-                .head(8)
-            )
-            fig_bar = px.bar(
-                top_areas,
-                x="overall_score",
-                y="estate",
-                color="county",
-                orientation="h",
-                text="overall_score",
-                labels={"overall_score": "Overall score (0-100)", "estate": "Estate"},
-            )
-            fig_bar.update_traces(textposition="outside")
-            fig_bar.update_layout(
-                yaxis={"categoryorder": "total ascending"},
-                xaxis_range=[0, 100],
-                margin=dict(l=10, r=10, t=40, b=10),
-                legend_title_text="County",
-            )
-            st.plotly_chart(fig_bar, use_container_width=True)
-
-        st.subheader("Map Explorer")
-        map_df = filtered.copy()
-        if len(map_df) > MAP_MAX_SCATTER_POINTS:
-            st.caption(
-                f"Showing a **random sample of {MAP_MAX_SCATTER_POINTS:,}** dots (of {len(map_df):,}) so the browser stays responsive. "
-                "Narrow filters or aggregate in GIS for full national views."
-            )
-            map_df = map_df.sample(n=MAP_MAX_SCATTER_POINTS, random_state=42)
-        st.caption(
-            "How to read: each dot is a listing. Bigger/greener dots are stronger overall options under your current filters."
-        )
-        view_state = pdk.ViewState(
-            latitude=map_df["latitude"].mean(),
-            longitude=map_df["longitude"].mean(),
-            zoom=8.3,
-            pitch=0,
-        )
-        map_df["marker_radius"] = 800 + (map_df["overall_score"] * 35)
-        map_df["green"] = (80 + map_df["overall_score"] * 1.5).clip(upper=220)
-        map_df["red"] = (220 - map_df["overall_score"] * 1.7).clip(lower=30)
-        prog_line = (
-            "\nProgram: " + map_df["housing_program"].astype(str)
-            if "housing_program" in map_df.columns
-            else ""
-        )
-        lt_line = (
-            "\nType: " + map_df["listing_type"].astype(str)
-            if "listing_type" in map_df.columns
-            else ""
-        )
-        map_df["tooltip"] = (
-            "Estate: "
-            + map_df["estate"].astype(str)
-            + "\nCounty: "
-            + map_df["county"].astype(str)
-            + prog_line
-            + lt_line
-            + "\nPrice: KES "
-            + map_df["price_kes"].map(lambda x: f"{int(x):,}")
-            + "\nOverall Score: "
-            + map_df["overall_score"].astype(str)
-        )
-        layer = pdk.Layer(
-            "ScatterplotLayer",
-            data=map_df,
-            get_position="[longitude, latitude]",
-            get_radius="marker_radius",
-            get_fill_color="[red, green, 120, 170]",
-            stroked=True,
-            get_line_color=[20, 20, 20, 120],
-            line_width_min_pixels=1,
-            pickable=True,
-        )
-        st.pydeck_chart(
-            pdk.Deck(
-                map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
-                initial_view_state=view_state,
-                layers=[layer],
-                tooltip={"text": "{tooltip}"},
-            ),
-            use_container_width=True,
-        )
-
-        st.subheader("Shortlist Table")
-        shortlist_cols = [
-            "listing_id",
-            "county",
-            "estate",
-            "property_type",
-            "bedrooms",
-            "price_kes",
-            "affordability_score",
-            "accessibility_score",
-            "overall_score",
-        ]
-        if "housing_program" in filtered.columns:
-            shortlist_cols.insert(2, "housing_program")
-        extras = [c for c in ("sub_county", "listing_type") if c in filtered.columns]
-        for j, col in enumerate(extras):
-            shortlist_cols.insert(shortlist_cols.index("estate") + 1 + j, col)
-        for c in ("contact_phone", "contact_email"):
-            if c in filtered.columns and filtered[c].astype(str).str.strip().ne("").any():
-                shortlist_cols.append(c)
-        table_df = filtered.sort_values("overall_score", ascending=False)[shortlist_cols]
-        if len(table_df) > 50_000:
-            st.caption(f"Table shows first **50,000** of {len(table_df):,} rows. Export CSV for the full filtered set.")
-            table_df = table_df.head(50_000)
-        st.dataframe(table_df, use_container_width=True)
-
-        csv_data = filtered.sort_values("overall_score", ascending=False).to_csv(index=False).encode("utf-8")
-        st.download_button(
-            "Download filtered shortlist (CSV)",
-            data=csv_data,
-            file_name="kenya_housing_shortlist.csv",
-            mime="text/csv",
-        )
-
-with guide_tab:
-    render_buyer_guide()
-
-with places_tab:
-    render_places_risk(df, filtered)
-
-with macro_tab:
-    _med = float(df["price_kes"].median()) if not df.empty else None
-    render_macro_dashboard(wb_df, listing_median_kes=_med, listing_count=len(df) if not df.empty else None)
-
-with intel_tab:
-    st.subheader("Decision Intelligence")
-    for bullet in compute_insights(filtered):
-        st.write(f"- {bullet}")
-    if not filtered.empty:
-        st.markdown("**Top 3 recommendations based on current filters**")
-        recommended = filtered.sort_values("overall_score", ascending=False).head(3)
-        rec_cols = [
-            "estate",
-            "county",
-            "property_type",
-            "price_kes",
-            "bedrooms",
-            "affordability_score",
-            "accessibility_score",
-            "overall_score",
-        ]
-        if "housing_program" in recommended.columns:
-            rec_cols.insert(2, "housing_program")
-        if "listing_type" in recommended.columns:
-            rec_cols.insert(rec_cols.index("county") + 1, "listing_type")
-        st.dataframe(recommended[rec_cols], use_container_width=True)
-        st.caption(
-            "Recommendation logic: weighted score using affordability (65%) and accessibility (35%)."
-        )
