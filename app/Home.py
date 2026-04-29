@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 import pandas as pd
 import streamlit as st
 
+from ai_housing_guide import render_ai_housing_guide
 from buyer_guide import render_buyer_guide
 from macro_dashboard import render_macro_dashboard
 from places_risk import render_places_risk
@@ -185,8 +186,8 @@ st.caption(
     "Simple first view, with deeper economic and place-based pages available below."
 )
 
-home_tab, econ_tab, dev_tab, guide_tab, growth_tab = st.tabs(
-    ["Home (Simple)", "Economic Data", "Developments", "Buyer Guide", "Growth & Environment"]
+home_tab, econ_tab, dev_tab, ai_tab, guide_tab, growth_tab = st.tabs(
+    ["Home (Simple)", "Economic Data", "Developments", "AI Housing Guide", "Buyer Guide", "Growth & Environment"]
 )
 
 with home_tab:
@@ -245,6 +246,14 @@ with dev_tab:
     else:
         st.dataframe(typology_matrix, use_container_width=True)
     st.caption("Rows are common unit typologies; columns are major metro nodes.")
+
+with ai_tab:
+    ai_context = {
+        "listing_count": len(df),
+        "median_price_kes": int(df["price_kes"].median()) if not df.empty else None,
+        "affordable_share_pct": round(((df["price_kes"] <= 5_000_000).mean() * 100), 1) if not df.empty else None,
+    }
+    render_ai_housing_guide(ai_context)
 
 with guide_tab:
     render_buyer_guide()
