@@ -67,9 +67,11 @@ def format_kes(value: float) -> str:
 
 
 @st.cache_data(ttl=3600)
-def fetch_external_news(limit: int = 8) -> list[dict[str, str]]:
+def fetch_external_news(limit: int = 15) -> list[dict[str, str]]:
     feeds = [
-        ("Google News", "https://news.google.com/rss/search?q=Kenya+affordable+housing"),
+        ("Google News", "https://news.google.com/rss/search?q=Kenya+AHP+affordable+housing"),
+        ("Google News", "https://news.google.com/rss/search?q=Kenya+affordable+housing+programme"),
+        ("Google News", "https://news.google.com/rss/search?q=Kenya+Boma+Yangu+housing"),
         ("Google News", "https://news.google.com/rss/search?q=Kenya+real+estate+market"),
         ("World Bank Kenya", "https://www.worldbank.org/en/country/kenya/news?output=rss"),
         ("UN-Habitat", "https://unhabitat.org/rss.xml"),
@@ -91,20 +93,26 @@ def fetch_external_news(limit: int = 8) -> list[dict[str, str]]:
                 title_l = title.lower()
                 if not any(word in title_l for word in ["housing", "real estate", "mortgage", "property", "rent", "urban"]):
                     continue
+                # Add priority score for AHP-specific terms
+                ahp_keywords = ["ahp", "affordable housing programme", "boma yangu", "big four", "housing fund"]
+                priority = 2 if any(kw in title_l for kw in ahp_keywords) else 1
                 items.append(
                     {
                         "title": title,
                         "link": link,
                         "source": source,
                         "published": pub[:16] if pub else "Recent",
+                        "priority": priority,
                     }
                 )
         except (URLError, TimeoutError, ET.ParseError):
             continue
 
+    # Sort by priority (AHP first), then dedupe
+    items_sorted = sorted(items, key=lambda x: x["priority"], reverse=True)
     deduped: list[dict[str, str]] = []
     seen = set()
-    for item in items:
+    for item in items_sorted:
         key = item["title"].lower()
         if key in seen:
             continue
@@ -187,49 +195,49 @@ st.caption(
 )
 
 home_tab, econ_tab, dev_tab, ai_tab, guide_tab, growth_tab = st.tabs(
-    ["Home (Simple)", "Economic Data", "Developments", "AI Housing Guide", "Buyer Guide", "Growth & Environment"]
+    ["Home (AHP News)", "Economic Data", "Developments", "AI Housing Guide", "Buyer Guide", "Growth & Environment"]
 )
 
 with home_tab:
-    news_col, dev_col, stats_col = st.columns([1.2, 1.2, 1])
-
+    st.subheader("🏠 Kenya Affordable Housing Programme (AHP) News & Analysis")
+    
+    news_col, analysis_col = st.columns([1.2, 1])
+    
     with news_col:
-        st.subheader("News & research updates")
+        st.markdown("### 📰 Latest AHP & Housing News")
         if external_news:
-            for item in external_news[:6]:
-                st.markdown(f"- [{item['title']}]({item['link']})")
-                st.caption(f"{item['source']} | {item['published']}")
+            for item in external_news[:10]:
+                st.markdown(f"📌 [{item['title']}]({item['link']})")
+                st.caption(f"Source: {item['source']} | {item['published']}")
+                st.divider()
         else:
             st.info("Could not fetch external feeds right now. Try again in a moment.")
-
-    with dev_col:
-        st.subheader("Developments")
-        developments = build_developments(df)
-        st.dataframe(developments, use_container_width=True, hide_index=True)
-        st.caption("Major metro nodes with most listings and their current median prices.")
-
-    with stats_col:
-        st.subheader("Stats (open data)")
-        st.metric("Total listings", f"{len(df):,}")
-        st.metric("Median price", format_kes(df["price_kes"].median()))
-        affordable_share = (df["price_kes"] <= 5_000_000).mean() * 100
-        st.metric("Homes <= KES 5M", f"{affordable_share:.0f}%")
-        urban_share, urban_year = latest_indicator(wb_df, "SP.URB.TOTL.IN.ZS")
-        if urban_share is not None and urban_year is not None:
-            st.metric("Urban population", f"{urban_share:.1f}% ({urban_year})")
-        inflation, inflation_year = latest_indicator(wb_df, "FP.CPI.TOTL.ZG")
-        if inflation is not None and inflation_year is not None:
-            st.metric("Inflation", f"{inflation:.1f}% ({inflation_year})")
-
-    with st.expander("How to read this dashboard"):
-        st.markdown(
-            """
-            - **News & research updates**: headlines from free public news/research feeds.
-            - **Developments**: where listings are currently concentrated by metro node.
-            - **Stats**: combines dashboard listings with open World Bank indicators.
-            - Use top tabs to access deep analysis pages.
-            """
-        )
+    
+    with analysis_col:
+        st.markdown("### 📊 AHP Overview & Context")
+        
+        st.markdown("""
+        **About Kenya's Affordable Housing Programme (AHP):**
+        - Part of the government's Big Four Agenda
+        - Aims to increase access to decent, affordable housing
+        - Focus on partnerships with private sector developers
+        - Targets low- and middle-income households
+        """)
+        
+        st.divider()
+        
+        st.markdown("""
+        **Key Themes to Watch:**
+        - Policy updates & regulatory changes
+        - New project announcements
+        - Financing & mortgage availability
+        - Construction progress & delivery timelines
+        - Impact on urban development
+        """)
+        
+        st.divider()
+        
+        st.info("Use the top tabs for deeper dives into economic data, housing stock, AI guides, and more!")
 
 with econ_tab:
     render_macro_dashboard(
