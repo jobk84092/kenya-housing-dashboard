@@ -3,6 +3,7 @@ from pathlib import Path
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 import xml.etree.ElementTree as ET
+from datetime import datetime
 
 import pandas as pd
 import streamlit as st
@@ -13,9 +14,66 @@ from macro_dashboard import render_macro_dashboard
 from places_risk import render_places_risk
 from scoring import enrich_dataframe
 
+# Google Drive imports
+import os
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseDownload
+import io
+
 st.set_page_config(page_title="Kenya Affordable Housing Dashboard", layout="wide")
 
 MEGA_PARQUET = Path("data/processed/listings_mega.parquet")
+
+# Google Drive setup
+SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
+
+
+@st.cache_resource(show_spinner="Authenticating with Google Drive...")
+def get_google_drive_credentials():
+    creds = None
+    token_path = Path("token.json")
+    creds_path = Path("credentials.json")
+    
+    if token_path.exists():
+        creds = Credentials.from_authorized_user_file(str(token_path), SCOPES)
+    
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            st.warning("To connect to Google Drive, please upload your `credentials.json` file (download from Google Cloud Console)")
+            uploaded_creds = st.file_uploader("Upload credentials.json", type="json", key="gdrive_creds")
+            if uploaded_creds:
+                with open(creds_path, "wb") as f:
+                    f.write(uploaded_creds.getvalue())
+                flow = InstalledAppFlow.from_client_secrets_file(str(creds_path), SCOPES)
+                creds = flow.run_local_server(port=0)
+                with open(token_path, "w") as token:
+                    token.write(creds.to_json())
+    return creds
+
+
+@st.cache_data(ttl=3600, show_spinner="Fetching latest AHP documents from Google Drive...")
+def fetch_ahp_docs_from_drive(_creds):
+    if not _creds:
+        return []
+    
+    service = build("drive", "v3", credentials=_creds)
+    results = (
+        service.files()
+        .list(
+            q="mimeType contains 'document' or mimeType contains 'pdf' or mimeType contains 'text'",
+            pageSize=20,
+            fields="files(id, name, createdTime, modifiedTime, webViewLink)",
+            orderBy="modifiedTime desc"
+        )
+        .execute()
+    )
+    items = results.get("files", [])
+    return items
 
 
 @st.cache_data
@@ -76,7 +134,7 @@ def fetch_external_news(limit: int = 15) -> list[dict[str, str]]:
         ("World Bank Kenya", "https://www.worldbank.org/en/country/kenya/news?output=rss"),
         ("UN-Habitat", "https://unhabitat.org/rss.xml"),
     ]
-    items: list[dict[str, str]] = []
+    items: list[dict] = []
 
     for source, url in feeds:
         try:
@@ -93,6 +151,21 @@ def fetch_external_news(limit: int = 15) -> list[dict[str, str]]:
                 title_l = title.lower()
                 if not any(word in title_l for word in ["housing", "real estate", "mortgage", "property", "rent", "urban"]):
                     continue
+                
+                # Parse pubDate to datetime
+                pub_datetime = None
+                if pub:
+                    try:
+                        # Try common RSS date formats
+                        for fmt in ["%a, %d %b %Y %H:%M:%S %Z", "%a, %d %b %Y %H:%M:%S %z"]:
+                            try:
+                                pub_datetime = datetime.strptime(pub, fmt)
+                                break
+                            except ValueError:
+                                continue
+                    except:
+                        pass
+                
                 # Add priority score for AHP-specific terms
                 ahp_keywords = ["ahp", "affordable housing programme", "boma yangu", "big four", "housing fund"]
                 priority = 2 if any(kw in title_l for kw in ahp_keywords) else 1
@@ -102,14 +175,18 @@ def fetch_external_news(limit: int = 15) -> list[dict[str, str]]:
                         "link": link,
                         "source": source,
                         "published": pub[:16] if pub else "Recent",
+                        "pub_datetime": pub_datetime,
                         "priority": priority,
                     }
                 )
         except (URLError, TimeoutError, ET.ParseError):
             continue
 
-    # Sort by priority (AHP first), then dedupe
-    items_sorted = sorted(items, key=lambda x: x["priority"], reverse=True)
+    # Sort: first by priority (AHP first), then by date (newest first)
+    items_sorted = sorted(
+        items, 
+        key=lambda x: (-x["priority"], -x["pub_datetime"].timestamp() if x["pub_datetime"] else 0)
+    )
     deduped: list[dict[str, str]] = []
     seen = set()
     for item in items_sorted:
@@ -117,7 +194,13 @@ def fetch_external_news(limit: int = 15) -> list[dict[str, str]]:
         if key in seen:
             continue
         seen.add(key)
-        deduped.append(item)
+        # Only keep the fields we need for display
+        deduped.append({
+            "title": item["title"],
+            "link": item["link"],
+            "source": item["source"],
+            "published": item["published"]
+        })
         if len(deduped) >= limit:
             break
     return deduped
@@ -214,26 +297,37 @@ with home_tab:
             st.info("Could not fetch external feeds right now. Try again in a moment.")
     
     with analysis_col:
-        st.markdown("### 📊 AHP Overview & Context")
+        st.markdown("### 📊 Latest AHP Communications & Context")
         
-        st.markdown("""
-        **About Kenya's Affordable Housing Programme (AHP):**
-        - Part of the government's Big Four Agenda
-        - Aims to increase access to decent, affordable housing
-        - Focus on partnerships with private sector developers
-        - Targets low- and middle-income households
-        """)
+        # Google Drive Integration
+        creds = get_google_drive_credentials()
+        ahp_docs = fetch_ahp_docs_from_drive(creds)
         
-        st.divider()
-        
-        st.markdown("""
-        **Key Themes to Watch:**
-        - Policy updates & regulatory changes
-        - New project announcements
-        - Financing & mortgage availability
-        - Construction progress & delivery timelines
-        - Impact on urban development
-        """)
+        if ahp_docs:
+            st.markdown("#### 📁 Latest AHP Documents from Google Drive")
+            for doc in ahp_docs[:5]:  # Show top 5 most recent
+                st.markdown(f"📄 [{doc['name']}]({doc['webViewLink']})")
+                st.caption(f"Last modified: {doc['modifiedTime'][:10]}")
+                st.divider()
+        else:
+            st.markdown("""
+            **About Kenya's Affordable Housing Programme (AHP):**
+            - Part of the government's Big Four Agenda
+            - Aims to increase access to decent, affordable housing
+            - Focus on partnerships with private sector developers
+            - Targets low- and middle-income households
+            """)
+            
+            st.divider()
+            
+            st.markdown("""
+            **Key Themes to Watch:**
+            - Policy updates & regulatory changes
+            - New project announcements
+            - Financing & mortgage availability
+            - Construction progress & delivery timelines
+            - Impact on urban development
+            """)
         
         st.divider()
         
