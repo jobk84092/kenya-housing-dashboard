@@ -35,14 +35,14 @@ def _chat_completion(
     context: dict[str, Any],
     history: list[dict[str, str]],
 ) -> str:
-    api_key = _get_secret("OPENAI_API_KEY")
-    base_url = _get_secret("OPENAI_BASE_URL", "https://openrouter.ai/api/v1")
-    model = _get_secret("OPENAI_MODEL", "openai/gpt-4o-mini")
-
-    if not api_key:
+    # Try Groq first, then fall back to OpenAI/OpenRouter
+    groq_api_key = _get_secret("GROQ_API_KEY")
+    openai_api_key = _get_secret("OPENAI_API_KEY")
+    
+    if not groq_api_key and not openai_api_key:
         return (
-            "AI guide is not configured yet. Add `OPENAI_API_KEY` in Streamlit secrets. "
-            "Optional: `OPENAI_BASE_URL` and `OPENAI_MODEL` if you use a free-tier provider."
+            "AI guide is not configured yet. Add either `GROQ_API_KEY` (recommended, free) or `OPENAI_API_KEY` in Streamlit secrets. "
+            "Get a free Groq key here: https://console.groq.com/keys"
         )
 
     context_text = (
@@ -53,6 +53,17 @@ def _chat_completion(
     messages: list[dict[str, str]] = [{"role": "system", "content": SYSTEM_PROMPT + "\n\n" + context_text}]
     messages.extend(history[-6:])
     messages.append({"role": "user", "content": user_message})
+
+    if groq_api_key:
+        # Use Groq
+        base_url = "https://api.groq.com/openai/v1"
+        model = _get_secret("GROQ_MODEL", "llama-3.1-70b-versatile")
+        api_key = groq_api_key
+    else:
+        # Use OpenAI/OpenRouter
+        base_url = _get_secret("OPENAI_BASE_URL", "https://openrouter.ai/api/v1")
+        model = _get_secret("OPENAI_MODEL", "openai/gpt-4o-mini")
+        api_key = openai_api_key
 
     endpoint = f"{base_url.rstrip('/')}/chat/completions"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
@@ -80,12 +91,17 @@ def render_ai_housing_guide(context: dict[str, Any]) -> None:
     with st.expander("Setup (free-tier friendly)", expanded=False):
         st.markdown(
             """
-            Add these in Streamlit secrets:
+            **Recommended (Free):**  
+            Get a free Groq API key here: https://console.groq.com/keys  
+            Add this to Streamlit secrets:
+            - `GROQ_API_KEY`
+            - `GROQ_MODEL` (optional, default: `llama-3.1-70b-versatile`)
+            
+            **Alternative:**  
+            Use OpenAI or OpenRouter by adding:
             - `OPENAI_API_KEY`
             - `OPENAI_BASE_URL` (optional, default: `https://openrouter.ai/api/v1`)
             - `OPENAI_MODEL` (optional, default: `openai/gpt-4o-mini`)
-
-            You can point to an API-compatible low/no-cost provider by changing base URL + model.
             """
         )
 
