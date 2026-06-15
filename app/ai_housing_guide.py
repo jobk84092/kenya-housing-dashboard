@@ -88,23 +88,6 @@ def render_ai_housing_guide(context: dict[str, Any]) -> None:
         "Ask simple questions about Kenya affordable housing programs, budgeting, and first-home decisions."
     )
 
-    with st.expander("Setup (free-tier friendly)", expanded=False):
-        st.markdown(
-            """
-            **Recommended (Free):**  
-            Get a free Groq API key here: https://console.groq.com/keys  
-            Add this to Streamlit secrets:
-            - `GROQ_API_KEY`
-            - `GROQ_MODEL` (optional, default: `llama-3.1-70b-versatile`)
-            
-            **Alternative:**  
-            Use OpenAI or OpenRouter by adding:
-            - `OPENAI_API_KEY`
-            - `OPENAI_BASE_URL` (optional, default: `https://openrouter.ai/api/v1`)
-            - `OPENAI_MODEL` (optional, default: `openai/gpt-4o-mini`)
-            """
-        )
-
     if "ai_housing_chat" not in st.session_state:
         st.session_state.ai_housing_chat = []
 
