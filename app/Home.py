@@ -14,66 +14,9 @@ from macro_dashboard import render_macro_dashboard
 from places_risk import render_places_risk
 from scoring import enrich_dataframe
 
-# Google Drive imports
-import os
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseDownload
-import io
-
 st.set_page_config(page_title="Kenya Affordable Housing Dashboard", layout="wide")
 
 MEGA_PARQUET = Path("data/processed/listings_mega.parquet")
-
-# Google Drive setup
-SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
-
-
-@st.cache_resource(show_spinner="Authenticating with Google Drive...")
-def get_google_drive_credentials():
-    creds = None
-    token_path = Path("token.json")
-    creds_path = Path("credentials.json")
-    
-    if token_path.exists():
-        creds = Credentials.from_authorized_user_file(str(token_path), SCOPES)
-    
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            st.warning("To connect to Google Drive, please upload your `credentials.json` file (download from Google Cloud Console)")
-            uploaded_creds = st.file_uploader("Upload credentials.json", type="json", key="gdrive_creds")
-            if uploaded_creds:
-                with open(creds_path, "wb") as f:
-                    f.write(uploaded_creds.getvalue())
-                flow = InstalledAppFlow.from_client_secrets_file(str(creds_path), SCOPES)
-                creds = flow.run_local_server(port=0)
-                with open(token_path, "w") as token:
-                    token.write(creds.to_json())
-    return creds
-
-
-@st.cache_data(ttl=3600, show_spinner="Fetching latest AHP documents from Google Drive...")
-def fetch_ahp_docs_from_drive(_creds):
-    if not _creds:
-        return []
-    
-    service = build("drive", "v3", credentials=_creds)
-    results = (
-        service.files()
-        .list(
-            q="mimeType contains 'document' or mimeType contains 'pdf' or mimeType contains 'text'",
-            pageSize=20,
-            fields="files(id, name, createdTime, modifiedTime, webViewLink)",
-            orderBy="modifiedTime desc"
-        )
-        .execute()
-    )
-    items = results.get("files", [])
-    return items
 
 
 @st.cache_data
@@ -297,37 +240,41 @@ with home_tab:
             st.info("Could not fetch external feeds right now. Try again in a moment.")
     
     with analysis_col:
-        st.markdown("### 📊 Latest AHP Communications & Context")
+        st.markdown("### 📊 Kenya AHP: Latest Context & Developments")
         
-        # Google Drive Integration
-        creds = get_google_drive_credentials()
-        ahp_docs = fetch_ahp_docs_from_drive(creds)
+        st.markdown("""
+        **Kenya Kwanza Manifesto & AHP Commitments (2022-2027):**
+        The Kenya Kwanza government prioritizes affordable housing as a key pillar of its economic agenda, with commitments to:
+        - Deliver 200,000 affordable housing units annually
+        - Expand access to mortgage financing (including through the Kenya Mortgage Refinance Company - KMRC)
+        - Partner with county governments and private sector developers
+        - Establish housing fund contributions via statutory deductions
+        - Invest in infrastructure (roads, water, electricity) to support new housing projects
+        - Empower local artisans and contractors in the construction sector
+        - Promote green building and climate-resilient housing solutions
+        """)
         
-        if ahp_docs:
-            st.markdown("#### 📁 Latest AHP Documents from Google Drive")
-            for doc in ahp_docs[:5]:  # Show top 5 most recent
-                st.markdown(f"📄 [{doc['name']}]({doc['webViewLink']})")
-                st.caption(f"Last modified: {doc['modifiedTime'][:10]}")
-                st.divider()
-        else:
-            st.markdown("""
-            **About Kenya's Affordable Housing Programme (AHP):**
-            - Part of the government's Big Four Agenda
-            - Aims to increase access to decent, affordable housing
-            - Focus on partnerships with private sector developers
-            - Targets low- and middle-income households
-            """)
-            
-            st.divider()
-            
-            st.markdown("""
-            **Key Themes to Watch:**
-            - Policy updates & regulatory changes
-            - New project announcements
-            - Financing & mortgage availability
-            - Construction progress & delivery timelines
-            - Impact on urban development
-            """)
+        st.divider()
+        
+        st.markdown("""
+        **Key Recent Presidential & Government Announcements:**
+        - **Affordable Housing Fund (AHF) Deductions:** The government rolled out statutory deductions for the AHP, with contributions from both employees and employers to fund affordable housing initiatives
+        - **County Partnerships:** Collaboration with devolved units to identify land and implement housing projects in all 47 counties
+        - **Boma Yangu Programme:** Expansion of the national affordable housing platform to streamline application and allocation processes
+        - **Economic Stimulus:** Positioning the construction and housing sector as a key driver of job creation and economic growth
+        - **Infrastructure First:** Prioritizing the provision of roads, water, electricity, and sewerage in areas earmarked for affordable housing
+        """)
+        
+        st.divider()
+        
+        st.markdown("""
+        **Key Themes to Watch:**
+        - Policy updates & regulatory changes
+        - New project announcements
+        - Financing & mortgage availability
+        - Construction progress & delivery timelines
+        - Impact on urban development & county-level implementation
+        """)
         
         st.divider()
         
