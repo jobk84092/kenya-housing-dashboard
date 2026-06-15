@@ -57,7 +57,7 @@ def _chat_completion(
     if groq_api_key:
         # Use Groq
         base_url = "https://api.groq.com/openai/v1"
-        model = _get_secret("GROQ_MODEL", "llama-3.1-70b-versatile")
+        model = _get_secret("GROQ_MODEL", "llama-3.3-70b-versatile")
         api_key = groq_api_key
     else:
         # Use OpenAI/OpenRouter
