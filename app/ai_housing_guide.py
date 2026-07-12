@@ -38,9 +38,14 @@ NON-NEGOTIABLE RULES:
 
 
 def _get_secret(name: str, default: str = "") -> str:
-    value = st.secrets.get(name, default) if hasattr(st, "secrets") else default
-    if value:
-        return str(value)
+    """Read secret without crashing when Streamlit has no secrets.toml configured."""
+    try:
+        value = st.secrets.get(name, default)
+        if value:
+            return str(value)
+    except Exception:
+        # StreamlitSecretNotFoundError (and siblings) when Cloud/local secrets are empty
+        pass
     return os.getenv(name, default)
 
 

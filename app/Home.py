@@ -16,34 +16,44 @@ from scoring import enrich_dataframe
 
 st.set_page_config(page_title="Kenya Affordable Housing Dashboard", layout="wide")
 
-MEGA_PARQUET = Path("data/processed/listings_mega.parquet")
+# Repo root — works whether Streamlit cwd is repo root or app/
+ROOT = Path(__file__).resolve().parents[1]
+MEGA_PARQUET = ROOT / "data" / "processed" / "listings_mega.parquet"
 
 
 @st.cache_data
 def load_data() -> pd.DataFrame:
-    public_path = Path("data/processed/listings_public_master.csv")
-    bulk_path = Path("data/sample/listings_affordable_bulk.csv")
-    enriched_path = Path("data/processed/listings_enriched.csv")
-    sample_path = Path("data/sample/listings_sample.csv")
+    public_path = ROOT / "data" / "processed" / "listings_public_master.csv"
+    bulk_path = ROOT / "data" / "sample" / "listings_affordable_bulk.csv"
+    enriched_path = ROOT / "data" / "processed" / "listings_enriched.csv"
+    sample_path = ROOT / "data" / "sample" / "listings_sample.csv"
 
-    if MEGA_PARQUET.exists():
-        try:
-            return enrich_dataframe(pd.read_parquet(MEGA_PARQUET))
-        except ImportError as exc:
-            raise RuntimeError(
-                "Install pyarrow (`pip install pyarrow`) to read parquet data."
-            ) from exc
-    if public_path.exists():
-        return enrich_dataframe(pd.read_csv(public_path))
-    if bulk_path.exists():
-        return enrich_dataframe(pd.read_csv(bulk_path))
-    if enriched_path.exists():
-        return enrich_dataframe(pd.read_csv(enriched_path))
-    return enrich_dataframe(pd.read_csv(sample_path))
+    try:
+        if MEGA_PARQUET.exists():
+            try:
+                return enrich_dataframe(pd.read_parquet(MEGA_PARQUET))
+            except ImportError as exc:
+                raise RuntimeError(
+                    "Install pyarrow (`pip install pyarrow`) to read parquet data."
+                ) from exc
+        if public_path.exists():
+            return enrich_dataframe(pd.read_csv(public_path))
+        if bulk_path.exists():
+            return enrich_dataframe(pd.read_csv(bulk_path))
+        if enriched_path.exists():
+            return enrich_dataframe(pd.read_csv(enriched_path))
+        if sample_path.exists():
+            return enrich_dataframe(pd.read_csv(sample_path))
+    except Exception as exc:
+        st.error(f"Could not load listings data: {exc}")
+        return pd.DataFrame()
+
+    st.warning("No listings CSV/parquet found under data/.")
+    return pd.DataFrame()
 
 
 def get_refresh_metadata() -> dict:
-    metadata_path = Path("data/processed/refresh_metadata.json")
+    metadata_path = ROOT / "data" / "processed" / "refresh_metadata.json"
     if not metadata_path.exists():
         return {}
     with metadata_path.open("r", encoding="utf-8") as handle:
@@ -52,7 +62,7 @@ def get_refresh_metadata() -> dict:
 
 @st.cache_data
 def load_worldbank_data() -> pd.DataFrame:
-    wb_path = Path("data/processed/worldbank_indicators_ke.csv")
+    wb_path = ROOT / "data" / "processed" / "worldbank_indicators_ke.csv"
     if not wb_path.exists():
         return pd.DataFrame()
     wb = pd.read_csv(wb_path)
@@ -212,7 +222,11 @@ metro_map = {
     "Uasin Gishu": "Rift Valley Metro",
     "Kisumu": "Lake Metro",
 }
-df["metro_node"] = df["county"].map(metro_map).fillna("Other Nodes")
+if not df.empty and "county" in df.columns:
+    df["metro_node"] = df["county"].map(metro_map).fillna("Other Nodes")
+else:
+    df = df.copy()
+    df["metro_node"] = pd.Series(dtype="object")
 external_news = fetch_external_news()
 
 st.title("Kenya Affordable Housing Dashboard")
