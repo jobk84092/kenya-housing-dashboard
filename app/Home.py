@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MEGA_PARQUET = ROOT / "data" / "processed" / "listings_mega.parquet"
 
 
-@st.cache_data
+@st.cache_resource
 def load_data() -> pd.DataFrame:
     public_path = ROOT / "data" / "processed" / "listings_public_master.csv"
     bulk_path = ROOT / "data" / "sample" / "listings_affordable_bulk.csv"
@@ -60,7 +60,7 @@ def get_refresh_metadata() -> dict:
         return json.load(handle)
 
 
-@st.cache_data
+@st.cache_resource
 def load_worldbank_data() -> pd.DataFrame:
     wb_path = ROOT / "data" / "processed" / "worldbank_indicators_ke.csv"
     if not wb_path.exists():
@@ -227,22 +227,30 @@ if not df.empty and "county" in df.columns:
 else:
     df = df.copy()
     df["metro_node"] = pd.Series(dtype="object")
-external_news = fetch_external_news()
 
 st.title("Kenya Affordable Housing Dashboard")
 st.caption(
     "Simple first view, with deeper economic and place-based pages available below."
 )
 
-home_tab, econ_tab, dev_tab, ai_tab, guide_tab, growth_tab = st.tabs(
-    ["Home (AHP News)", "Economic Data", "Developments", "AI Housing Guide", "Buyer Guide", "Growth & Environment"]
-)
+# Only render the selected page (st.tabs runs ALL tab bodies every time and
+# can exceed Streamlit Community Cloud's ~1GB memory limit).
+PAGES = [
+    "Home (AHP News)",
+    "Economic Data",
+    "Developments",
+    "AI Housing Guide",
+    "Buyer Guide",
+    "Growth & Environment",
+]
+page = st.radio("Navigate", PAGES, horizontal=True, label_visibility="collapsed")
 
-with home_tab:
+if page == "Home (AHP News)":
+    external_news = fetch_external_news()
     st.subheader("🏠 Kenya Affordable Housing Programme (AHP) News & Analysis")
-    
+
     news_col, analysis_col = st.columns([1.2, 1])
-    
+
     with news_col:
         st.markdown("### 📰 Latest AHP & Housing News")
         if external_news:
@@ -252,10 +260,10 @@ with home_tab:
                 st.divider()
         else:
             st.info("Could not fetch external feeds right now. Try again in a moment.")
-    
+
     with analysis_col:
         st.markdown("### 📊 Kenya AHP: Latest Context & Developments")
-        
+
         st.markdown("""
         **Kenya Kwanza Manifesto & AHP Commitments (2022-2027):**
         The Kenya Kwanza government prioritizes affordable housing as a key pillar of its economic agenda, with commitments to:
@@ -267,9 +275,9 @@ with home_tab:
         - Empower local artisans and contractors in the construction sector
         - Promote green building and climate-resilient housing solutions
         """)
-        
+
         st.divider()
-        
+
         st.markdown("""
         **Key Recent Presidential & Government Announcements:**
         - **Affordable Housing Fund (AHF) Deductions:** The government rolled out statutory deductions for the AHP, with contributions from both employees and employers to fund affordable housing initiatives
@@ -278,9 +286,9 @@ with home_tab:
         - **Economic Stimulus:** Positioning the construction and housing sector as a key driver of job creation and economic growth
         - **Infrastructure First:** Prioritizing the provision of roads, water, electricity, and sewerage in areas earmarked for affordable housing
         """)
-        
+
         st.divider()
-        
+
         st.markdown("""
         **Key Themes to Watch:**
         - Policy updates & regulatory changes
@@ -289,19 +297,19 @@ with home_tab:
         - Construction progress & delivery timelines
         - Impact on urban development & county-level implementation
         """)
-        
-        st.divider()
-        
-        st.info("Use the top tabs for deeper dives into economic data, housing stock, AI guides, and more!")
 
-with econ_tab:
+        st.divider()
+
+        st.info("Use the top navigation for deeper dives into economic data, housing stock, AI guides, and more!")
+
+elif page == "Economic Data":
     render_macro_dashboard(
         wb_df,
         listing_median_kes=float(df["price_kes"].median()) if not df.empty else None,
         listing_count=len(df),
     )
 
-with dev_tab:
+elif page == "Developments":
     st.subheader("Median home prices by typology across metro nodes")
     typology_matrix = build_typology_matrix(df)
     if typology_matrix.empty:
@@ -310,7 +318,7 @@ with dev_tab:
         st.dataframe(typology_matrix, use_container_width=True)
     st.caption("Rows are common unit typologies; columns are major metro nodes.")
 
-with ai_tab:
+elif page == "AI Housing Guide":
     ai_context = {
         "listing_count": len(df),
         "median_price_kes": int(df["price_kes"].median()) if not df.empty else None,
@@ -318,8 +326,8 @@ with ai_tab:
     }
     render_ai_housing_guide(ai_context)
 
-with guide_tab:
+elif page == "Buyer Guide":
     render_buyer_guide()
 
-with growth_tab:
+elif page == "Growth & Environment":
     render_places_risk(df, df)
