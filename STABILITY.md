@@ -37,7 +37,8 @@ bash deploy/install_contabo.sh
 bash deploy/deploy.sh
 ```
 
-- App: `http://127.0.0.1:8502` on server (nginx → public domain)
+- Public URL: **https://housing.openourquotes.com** (Porkbun A → Contabo; see `deploy/DNS_OPENOURQUOTES.md`)
+- App (local on server): `http://127.0.0.1:8502` — Caddy on 80/443 proxies to the container
 - Path: `/home/deploy/kenya-housing-dashboard`
 - Secrets: `~deploy/kenya-housing-dashboard/.streamlit/secrets.toml`
 - Health: `deploy/health_check.sh` every 15 min (auto-restart)

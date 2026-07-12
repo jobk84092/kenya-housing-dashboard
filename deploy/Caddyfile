@@ -1,0 +1,7 @@
+# Public HTTPS for Kenya Housing Dashboard on Contabo.
+# DNS (Porkbun): housing.openourquotes.com → A → 13.140.146.55
+# Caddy obtains Let's Encrypt certs automatically once DNS propagates.
+
+housing.openourquotes.com {
+	reverse_proxy kenya-housing:8501
+}

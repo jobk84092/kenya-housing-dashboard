@@ -14,8 +14,39 @@ services:
       - ../.streamlit/secrets.toml:/app/.streamlit/secrets.toml:ro
     mem_limit: 1536m
     cpus: 1.5
+    networks:
+      - housing-net
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "3"
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: kenya-housing-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - housing-net
+    depends_on:
+      kenya-housing:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  housing-net:
+
+volumes:
+  caddy_data:
+  caddy_config:
