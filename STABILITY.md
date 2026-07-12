@@ -38,7 +38,8 @@ bash deploy/deploy.sh
 ```
 
 - App: `http://127.0.0.1:8502` on server (nginx → public domain)
-- Secrets: `/opt/kenya-housing-dashboard/.streamlit/secrets.toml`
+- Path: `/home/deploy/kenya-housing-dashboard`
+- Secrets: `~deploy/kenya-housing-dashboard/.streamlit/secrets.toml`
 - Health: `deploy/health_check.sh` every 15 min (auto-restart)
 - Docker prune: weekly (Agent Office cron, Sundays 03:15)
 

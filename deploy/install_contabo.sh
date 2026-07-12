@@ -4,7 +4,7 @@
 # On server: bash /opt/kenya-housing-dashboard/deploy/install_contabo.sh
 set -euo pipefail
 
-APP_DIR="${APP_DIR:-/opt/kenya-housing-dashboard}"
+APP_DIR="${APP_DIR:-$HOME/kenya-housing-dashboard}"
 REPO="${REPO:-https://github.com/jobk84092/kenya-housing-dashboard.git}"
 HOST="${CONTABO_HOST:-}"
 
@@ -16,9 +16,7 @@ fi
 echo "=== Kenya Housing Dashboard — Contabo install ==="
 
 if [[ ! -d "$APP_DIR/.git" ]]; then
-  sudo mkdir -p "$(dirname "$APP_DIR")"
-  sudo git clone "$REPO" "$APP_DIR"
-  sudo chown -R deploy:deploy "$APP_DIR"
+  git clone "$REPO" "$APP_DIR"
 fi
 
 cd "$APP_DIR"
@@ -36,11 +34,15 @@ echo "=== Build & start container ==="
 cd deploy
 docker compose up -d --build
 
-echo "=== Install systemd unit (optional, requires sudo) ==="
-if command -v systemctl >/dev/null 2>&1; then
-  sudo cp "$APP_DIR/deploy/kenya-housing-dashboard.service" /etc/systemd/system/
+echo "=== Install systemd unit (optional, requires passwordless sudo) ==="
+if command -v systemctl >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+  sudo sed "s|/opt/kenya-housing-dashboard|$APP_DIR|g" \
+    "$APP_DIR/deploy/kenya-housing-dashboard.service" \
+    | sudo tee /etc/systemd/system/kenya-housing-dashboard.service >/dev/null
   sudo systemctl daemon-reload
   sudo systemctl enable kenya-housing-dashboard.service || true
+else
+  echo "Skipping systemd (no passwordless sudo) — docker compose restart policy is enough"
 fi
 
 echo "=== Health check cron (every 15 min) ==="

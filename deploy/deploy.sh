@@ -2,11 +2,11 @@
 # Fast deploy: git pull + rebuild container (no agent-office impact).
 set -euo pipefail
 
-APP_DIR="${APP_DIR:-/opt/kenya-housing-dashboard}"
+APP_DIR="${APP_DIR:-$HOME/kenya-housing-dashboard}"
 HOST="${CONTABO_HOST:-contabo}"
 
 if [[ "${1:-}" != "--local" ]]; then
-  ssh -o BatchMode=yes "$HOST" "bash $APP_DIR/deploy/deploy.sh --local"
+  ssh -o BatchMode=yes "$HOST" "APP_DIR=$APP_DIR bash $APP_DIR/deploy/deploy.sh --local"
   exit 0
 fi
 

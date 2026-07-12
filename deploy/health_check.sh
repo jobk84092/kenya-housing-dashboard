@@ -13,7 +13,9 @@ if curl -fsS --max-time 15 "$URL" >/dev/null; then
 fi
 
 echo "$(date -Iseconds) FAIL $URL — attempting restart" >> "$LOG"
-if [[ -d /opt/kenya-housing-dashboard/deploy ]]; then
+if [[ -d "$HOME/kenya-housing-dashboard/deploy" ]]; then
+  (cd "$HOME/kenya-housing-dashboard/deploy" && docker compose restart kenya-housing) >> "$LOG" 2>&1 || true
+elif [[ -d /opt/kenya-housing-dashboard/deploy ]]; then
   (cd /opt/kenya-housing-dashboard/deploy && docker compose restart kenya-housing) >> "$LOG" 2>&1 || true
 fi
 exit 1
