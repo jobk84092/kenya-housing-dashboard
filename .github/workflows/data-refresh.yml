@@ -25,10 +25,13 @@ jobs:
           pip install -r requirements.txt
 
       - name: Refresh datasets
-        run: python scripts/refresh_data.py
+        run: |
+          python scripts/refresh_data.py
+          python scripts/build_cloud_subset.py
+          python scripts/fetch_news_json.py
 
       - name: Commit updated data snapshots
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore(data): scheduled refresh of external datasets"
-          file_pattern: data/processed/*.csv data/processed/*.json
+          file_pattern: data/processed/*

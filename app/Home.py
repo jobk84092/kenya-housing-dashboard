@@ -1,9 +1,6 @@
 import json
+import os
 from pathlib import Path
-from urllib.error import URLError
-from urllib.request import Request, urlopen
-import xml.etree.ElementTree as ET
-from datetime import datetime
 
 import pandas as pd
 import streamlit as st
@@ -11,6 +8,7 @@ import streamlit as st
 from ai_housing_guide import render_ai_housing_guide
 from buyer_guide import render_buyer_guide
 from macro_dashboard import render_macro_dashboard
+from news_feed import get_news
 from places_risk import render_places_risk
 from scoring import enrich_dataframe
 
@@ -19,6 +17,8 @@ st.set_page_config(page_title="Kenya Affordable Housing Dashboard", layout="wide
 # Repo root — works whether Streamlit cwd is repo root or app/
 ROOT = Path(__file__).resolve().parents[1]
 MEGA_PARQUET = ROOT / "data" / "processed" / "listings_mega.parquet"
+CLOUD_PARQUET = ROOT / "data" / "processed" / "listings_cloud.parquet"
+USE_FULL_DATA = os.getenv("KENYA_HOUSING_FULL_DATA", "").lower() in ("1", "true", "yes")
 
 
 @st.cache_resource
@@ -30,12 +30,9 @@ def load_data() -> pd.DataFrame:
 
     try:
         if MEGA_PARQUET.exists():
-            try:
-                return enrich_dataframe(pd.read_parquet(MEGA_PARQUET))
-            except ImportError as exc:
-                raise RuntimeError(
-                    "Install pyarrow (`pip install pyarrow`) to read parquet data."
-                ) from exc
+            return enrich_dataframe(pd.read_parquet(MEGA_PARQUET))
+        if not USE_FULL_DATA and CLOUD_PARQUET.exists():
+            return enrich_dataframe(pd.read_parquet(CLOUD_PARQUET))
         if public_path.exists():
             return enrich_dataframe(pd.read_csv(public_path))
         if bulk_path.exists():
@@ -75,88 +72,6 @@ def load_worldbank_data() -> pd.DataFrame:
 
 def format_kes(value: float) -> str:
     return f"KES {int(value):,}"
-
-
-@st.cache_data(ttl=3600)
-def fetch_external_news(limit: int = 15) -> list[dict[str, str]]:
-    feeds = [
-        ("Google News", "https://news.google.com/rss/search?q=Kenya+AHP+affordable+housing"),
-        ("Google News", "https://news.google.com/rss/search?q=Kenya+affordable+housing+programme"),
-        ("Google News", "https://news.google.com/rss/search?q=Kenya+Boma+Yangu+housing"),
-        ("Google News", "https://news.google.com/rss/search?q=Kenya+real+estate+market"),
-        ("World Bank Kenya", "https://www.worldbank.org/en/country/kenya/news?output=rss"),
-        ("UN-Habitat", "https://unhabitat.org/rss.xml"),
-    ]
-    items: list[dict] = []
-
-    for source, url in feeds:
-        try:
-            request = Request(url, headers={"User-Agent": "Mozilla/5.0"})
-            with urlopen(request, timeout=7) as response:
-                payload = response.read()
-            root = ET.fromstring(payload)
-            for node in root.findall(".//item"):
-                title = (node.findtext("title") or "").strip()
-                link = (node.findtext("link") or "").strip()
-                pub = (node.findtext("pubDate") or "").strip()
-                if not title or not link:
-                    continue
-                title_l = title.lower()
-                if not any(word in title_l for word in ["housing", "real estate", "mortgage", "property", "rent", "urban"]):
-                    continue
-                
-                # Parse pubDate to datetime
-                pub_datetime = None
-                if pub:
-                    try:
-                        # Try common RSS date formats
-                        for fmt in ["%a, %d %b %Y %H:%M:%S %Z", "%a, %d %b %Y %H:%M:%S %z"]:
-                            try:
-                                pub_datetime = datetime.strptime(pub, fmt)
-                                break
-                            except ValueError:
-                                continue
-                    except:
-                        pass
-                
-                # Add priority score for AHP-specific terms
-                ahp_keywords = ["ahp", "affordable housing programme", "boma yangu", "big four", "housing fund"]
-                priority = 2 if any(kw in title_l for kw in ahp_keywords) else 1
-                items.append(
-                    {
-                        "title": title,
-                        "link": link,
-                        "source": source,
-                        "published": pub[:16] if pub else "Recent",
-                        "pub_datetime": pub_datetime,
-                        "priority": priority,
-                    }
-                )
-        except (URLError, TimeoutError, ET.ParseError):
-            continue
-
-    # Sort: first by priority (AHP first), then by date (newest first)
-    items_sorted = sorted(
-        items, 
-        key=lambda x: (-x["priority"], -x["pub_datetime"].timestamp() if x["pub_datetime"] else 0)
-    )
-    deduped: list[dict[str, str]] = []
-    seen = set()
-    for item in items_sorted:
-        key = item["title"].lower()
-        if key in seen:
-            continue
-        seen.add(key)
-        # Only keep the fields we need for display
-        deduped.append({
-            "title": item["title"],
-            "link": item["link"],
-            "source": item["source"],
-            "published": item["published"]
-        })
-        if len(deduped) >= limit:
-            break
-    return deduped
 
 
 def latest_indicator(wb: pd.DataFrame, indicator_code: str) -> tuple[float | None, int | None]:
@@ -246,7 +161,7 @@ PAGES = [
 page = st.radio("Navigate", PAGES, horizontal=True, label_visibility="collapsed")
 
 if page == "Home (AHP News)":
-    external_news = fetch_external_news()
+    external_news = get_news()
     st.subheader("🏠 Kenya Affordable Housing Programme (AHP) News & Analysis")
 
     news_col, analysis_col = st.columns([1.2, 1])

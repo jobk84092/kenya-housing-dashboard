@@ -11,11 +11,21 @@ def render_buyer_guide() -> None:
         "Always verify prices, titles, and developer credentials on official channels."
     )
 
-    t1, t2, t3, t4 = st.tabs(
-        ["Checklist", "By demographic", "Nairobi areas", "Other cities & closing"]
+    BUYER_SECTIONS = [
+        "Checklist",
+        "By demographic",
+        "Nairobi areas",
+        "Other cities & closing",
+    ]
+    section = st.radio(
+        "Buyer section",
+        BUYER_SECTIONS,
+        horizontal=True,
+        label_visibility="collapsed",
+        key="buyer_section",
     )
 
-    with t1:
+    if section == "Checklist":
         st.subheader("Property inspection checklist")
         st.markdown(
             """
@@ -37,7 +47,7 @@ def render_buyer_guide() -> None:
             """
         )
 
-    with t2:
+    elif section == "By demographic":
         st.subheader("What tends to matter by life stage")
         c1, c2 = st.columns(2)
         with c1:
@@ -72,7 +82,7 @@ def render_buyer_guide() -> None:
                 """
             )
 
-    with t3:
+    elif section == "Nairobi areas":
         st.subheader("Nairobi — how neighbourhoods often feel")
         st.markdown(
             """
@@ -88,7 +98,7 @@ def render_buyer_guide() -> None:
             """
         )
 
-    with t4:
+    elif section == "Other cities & closing":
         st.subheader("Beyond Nairobi")
         st.markdown(
             """

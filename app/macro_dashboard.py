@@ -93,17 +93,22 @@ def render_macro_dashboard(
             """
         )
 
-    tab_a, tab_b, tab_c, tab_d, tab_e = st.tabs(
-        [
-            "Urban & population",
-            "Infrastructure & connectivity",
-            "Economy & prices",
-            "Explorer & heat map",
-            "Jobs vs housing stress",
-        ]
+    MACRO_SECTIONS = [
+        "Urban & population",
+        "Infrastructure & connectivity",
+        "Economy & prices",
+        "Explorer & heat map",
+        "Jobs vs housing stress",
+    ]
+    section = st.radio(
+        "Macro section",
+        MACRO_SECTIONS,
+        horizontal=True,
+        label_visibility="collapsed",
+        key="macro_section",
     )
 
-    with tab_a:
+    if section == "Urban & population":
         st.subheader("Urbanisation and crowding")
         st.caption("Urban share and population density rise together when cities absorb migration faster than new housing stock.")
 
@@ -166,7 +171,7 @@ def render_macro_dashboard(
             fig2.update_layout(template="plotly_white")
             st.plotly_chart(fig2, use_container_width=True)
 
-    with tab_b:
+    elif section == "Infrastructure & connectivity":
         st.subheader("Basics that make a neighbourhood viable")
         st.caption("These series do not measure 'good roads near your listing' — they show national progress that supports (or lags) new towns.")
 
@@ -212,7 +217,7 @@ def render_macro_dashboard(
             fig_a.update_layout(template="plotly_white")
             st.plotly_chart(fig_a, use_container_width=True)
 
-    with tab_c:
+    elif section == "Economy & prices":
         st.subheader("Macro pressure on wallets and construction costs")
         econ = _wb_slice(wb, ["NY.GDP.PCAP.CD", "NY.GDP.MKTP.KD.ZG", "FP.CPI.TOTL.ZG", "SI.POV.GINI", "NE.GDI.FTOT.ZG"])
         if not econ.empty:
@@ -248,7 +253,7 @@ def render_macro_dashboard(
             fig_u.update_layout(template="plotly_white")
             st.plotly_chart(fig_u, use_container_width=True)
 
-    with tab_d:
+    elif section == "Explorer & heat map":
         st.subheader("Compare everything at once")
         st.caption("Use the controls below to inspect one indicator or compare two indicators directly.")
 
@@ -308,7 +313,7 @@ def render_macro_dashboard(
             fig_s.update_layout(template="plotly_white")
             st.plotly_chart(fig_s, use_container_width=True)
 
-    with tab_e:
+    elif section == "Jobs vs housing stress":
         render_jobs_housing_stress(
             wb,
             listing_median_kes=listing_median_kes,

@@ -95,9 +95,20 @@ def render_places_risk(df: pd.DataFrame, filtered: pd.DataFrame) -> None:
     env = _load_env()
     inv = _inventory_by_county(filtered if not filtered.empty else df)
 
-    t1, t2, t3 = st.tabs(["County population growth", "Environmental exposure", "Inventory heat (this load)"])
+    GROWTH_SECTIONS = [
+        "County population growth",
+        "Environmental exposure",
+        "Inventory heat (this load)",
+    ]
+    section = st.radio(
+        "Growth section",
+        GROWTH_SECTIONS,
+        horizontal=True,
+        label_visibility="collapsed",
+        key="growth_section",
+    )
 
-    with t1:
+    if section == "County population growth":
         if census.empty:
             st.info("Missing `data/reference/kenya_county_census_populations.csv`.")
         else:
@@ -131,7 +142,7 @@ def render_places_risk(df: pd.DataFrame, filtered: pd.DataFrame) -> None:
             fig2.update_layout(template="plotly_white", showlegend=False)
             st.plotly_chart(fig2, use_container_width=True)
 
-    with t2:
+    elif section == "Environmental exposure":
         if env.empty:
             st.info("Missing `data/reference/kenya_county_environmental_exposure.csv`.")
         else:
@@ -163,7 +174,7 @@ def render_places_risk(df: pd.DataFrame, filtered: pd.DataFrame) -> None:
             fig2.update_layout(template="plotly_white")
             st.plotly_chart(fig2, use_container_width=True)
 
-    with t3:
+    elif section == "Inventory heat (this load)":
         if inv.empty:
             st.info("No listings to aggregate.")
         else:

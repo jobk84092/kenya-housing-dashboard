@@ -1,0 +1,21 @@
+services:
+  kenya-housing:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: kenya-housing-dashboard:latest
+    container_name: kenya-housing-dashboard
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8502:8501"
+    environment:
+      KENYA_HOUSING_FULL_DATA: "1"
+    volumes:
+      - ../.streamlit/secrets.toml:/app/.streamlit/secrets.toml:ro
+    mem_limit: 1536m
+    cpus: 1.5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
